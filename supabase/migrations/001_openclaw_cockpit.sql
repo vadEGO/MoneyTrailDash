@@ -68,6 +68,7 @@ create table if not exists insights (
   research_priority text,
   requires_external_research boolean not null default false,
   user_relevance_reason_public text,
+  reasoning_summary text,
   counterpoints text[] not null default '{}',
   evidence_refs text[] not null default '{}',
   reasoning_mode text,
@@ -75,6 +76,8 @@ create table if not exists insights (
   created_at timestamptz,
   updated_at timestamptz not null default now()
 );
+
+alter table insights add column if not exists reasoning_summary text;
 
 create table if not exists topic_packs (
   topic_pack_id text primary key,
