@@ -20,7 +20,7 @@ export default function Sidebar() {
     <aside className="w-40 shrink-0 border-r border-border bg-surface flex flex-col h-screen">
       {/* Logo */}
       <div className="h-12 border-b border-border flex items-center px-4">
-        <span className="font-mono font-semibold text-sm tracking-tight text-ink">OPENCLAW</span>
+        <span className="font-mono font-semibold text-sm tracking-tight text-ink">MONEYTRAIL</span>
       </div>
 
       {/* Suite label */}
