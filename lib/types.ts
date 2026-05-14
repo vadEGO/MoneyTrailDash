@@ -1,111 +1,128 @@
-// TypeScript types mirroring Supabase tables and dashboard_data.json shape
-
-// --- dashboard_data.json sub-types ---
-
-export interface PortfolioHeat {
-  score: number
-  status: 'green' | 'amber' | 'red'
-  color?: string
-  blocked_actions?: string[]
+export interface DashboardSummary {
+  last_synced_at: string | null
+  last_council_run_at: string | null
+  opportunity_count: number | null
+  thesis_count: number | null
+  council_run_count: number | null
+  claim_count: number | null
+  insight_count: number | null
+  llm_fallback_rate: number | null
 }
 
-export interface SignalRadarRow {
-  asset: string
-  symbol: string
-  signal_score: number
-  mention_count: number
-  source_count: number
-  sentiment: 'bullish' | 'mixed' | 'neutral' | 'bearish'
-  crowding_score: number
-  research_priority: string
-  status: string
-  last_seen?: string
+export interface PublicOpportunity {
+  rank: number
+  opportunity_id: string
+  title: string
+  status: string | null
+  strategic_relevance: number | null
+  tactical_timing: number | null
+  evidence_strength: number | null
+  novelty_score: number | null
+  portfolio_fit_score_public: number | null
+  total_score: number | null
+  themes: string[] | null
+  assets_or_targets_public: string[] | null
+  why_now: string | null
+  what_would_change_the_view: string | null
+  next_step: string | null
+  updated_at: string | null
 }
 
-export interface TradeabilityRow {
-  asset: string
-  symbol: string
-  venue: string
-  market_type: string
-  tradeable: boolean
-  volume_24h?: number
-  open_interest?: number
-  spread_bps?: number
-  status: string
-  last_checked?: string
-}
-
-export interface ThesisBoardRow {
-  thesis: string
-  strength: number
-  lifecycle_stage: string
-  crowding_score: number
-  top_expressions: Array<{ symbol: string; score: number }>
-}
-
-export interface LiloBoardRow {
-  asset: string
-  symbol: string
-  position_role: string
-  lilo_mode?: string
-  current_action?: string
-  next_layer?: string  // e.g. "Add: -25% from $X" or "TP1: +40% → sell 15%"
-}
-
-export interface AllocationRow {
-  allocation_name: string
-  return_ytd?: number
-  cagr?: number
-  max_drawdown?: number
-  volatility?: number
-  thesis_fit?: number
-  score?: number
-}
-
-export interface AuditRow {
-  asset: string
-  decision_date: string
-  score: number
-  decision: string
-  outcome_30d?: number
-  outcome_90d?: number
-  category?: 'TP' | 'TN' | 'FP' | 'FN'
-}
-
-export interface PendingApproval {
-  asset: string
-  action: string
-  size_pct?: number
-  entry_price?: number
-  thesis?: string
-  created_at: string
-}
-
-export interface PipelineStatus {
-  last_run?: string
-  stages_failed?: string[]
-  next_scheduled?: string
-  currently_running?: boolean
-}
-
-// --- Supabase table rows ---
-
-export interface DashboardSnapshot {
+export interface PublicThesis {
   id: string
-  generated_at: string | null
-  currently_running: boolean
-  portfolio_heat: PortfolioHeat | null
-  signal_radar: SignalRadarRow[] | null
-  tradeability_board: TradeabilityRow[] | null
-  thesis_board: ThesisBoardRow[] | null
-  lilo_board: LiloBoardRow[] | null
-  allocation_board: AllocationRow[] | null
-  model_audit_board: AuditRow[] | null
-  pending_approvals: PendingApproval[] | null
-  pipeline_status: PipelineStatus | null
-  synced_at: string
+  topic: string
+  status: string | null
+  confidence: number | null
+  confidence_movement: string | null
+  decision_state: string | null
+  core_reasoning: string | null
+  next_step: string | null
+  agreements: string[] | null
+  counterpoints: string[] | null
+  invalidation_conditions: string[] | null
+  last_changed_reason: string | null
+  last_updated: string | null
 }
 
+export interface PublicCouncilRun {
+  id: string
+  topic_pack_id: string | null
+  topic: string
+  decision_state: string | null
+  confidence: number | null
+  consensus_view: string | null
+  recommended_next_step: string | null
+  agreements: string[] | null
+  disagreements: string[] | null
+  most_important_uncertainties: string[] | null
+  what_would_change_our_mind: string[] | null
+  personal_constraints_public: string[] | null
+  reasoning_mode: string | null
+  llm_model: string | null
+  created_at: string | null
+}
+
+export interface PersonaPosition {
+  id: string
+  council_run_id: string | null
+  persona: string
+  thesis: string | null
+  supporting_evidence: string[] | null
+  counterpoints: string[] | null
+  risks: string[] | null
+  investment_implications: string | null
+  what_would_change_my_mind: string[] | null
+  confidence: number | null
+  reasoning_mode: string | null
+  created_at: string | null
+}
+
+export interface ResearchLibraryRow {
+  id: string
+  record_type: string
+  topic: string | null
+  title: string | null
+  summary: string | null
+  materiality: string | null
+  research_priority: string | null
+  source_family: string | null
+  created_at: string | null
+}
+
+export interface EngineHealthRow {
+  sync_batch_id: string
+  status: string | null
+  last_synced_at: string | null
+  workflow_name: string | null
+  records_claims: number | null
+  records_insights: number | null
+  records_opportunities: number | null
+  records_council_runs: number | null
+  error_summary: string | null
+  is_stale: boolean | null
+}
+
+export interface PublicReport {
+  id: string
+  report_type: string
+  report_date: string | null
+  title: string | null
+  markdown_public: string | null
+  summary: string | null
+  created_at: string | null
+}
+
+export interface LlmHealthRow {
+  day: string | null
+  model: string | null
+  calls: number | null
+  ok_count: number | null
+  fallback_count: number | null
+  failed_count: number | null
+}
+
+// Legacy MoneyTrail asset-detail tables retained so older routes compile while the
+// cockpit moves to OpenClaw public views.
 export interface PublicResearch {
   id: string
   asset: string
@@ -152,16 +169,64 @@ export interface PublicTpLayer {
   status: string | null
 }
 
-// Minimal Database interface for typed Supabase client
+export interface SignalRadarRow {
+  asset: string
+  symbol: string
+  signal_score: number
+  mention_count: number
+  source_count: number
+  sentiment: 'bullish' | 'mixed' | 'neutral' | 'bearish'
+  crowding_score: number
+  research_priority: string
+  status: string
+  last_seen?: string
+}
+
+export interface ThesisBoardRow {
+  thesis: string
+  strength: number
+  lifecycle_stage: string
+  crowding_score: number
+  top_expressions: Array<{ symbol: string; score: number }>
+}
+
+export interface AuditRow {
+  asset: string
+  decision_date: string
+  score: number | null
+  decision: string | null
+  outcome_30d: number | null
+  outcome_90d: number | null
+  category: string | null
+}
+
+export interface DashboardSnapshot {
+  id: string
+  generated_at: string | null
+  currently_running: boolean
+  signal_radar: SignalRadarRow[] | null
+}
+
 export interface Database {
   public: {
     Tables: {
-      dashboard_snapshots: { Row: DashboardSnapshot }
+      persona_positions: { Row: PersonaPosition }
       public_research: { Row: PublicResearch }
       public_lilo: { Row: PublicLilo }
       public_tp_layers: { Row: PublicTpLayer }
+      dashboard_snapshots: { Row: DashboardSnapshot }
     }
-    Views: Record<string, never>
+    Views: {
+      public_dashboard_summary: { Row: DashboardSummary }
+      public_opportunity_watchlist: { Row: PublicOpportunity }
+      public_thesis_register: { Row: PublicThesis }
+      public_latest_council_runs: { Row: PublicCouncilRun }
+      public_persona_positions: { Row: PersonaPosition }
+      public_research_library: { Row: ResearchLibraryRow }
+      public_engine_health: { Row: EngineHealthRow }
+      public_reports: { Row: PublicReport }
+      public_llm_health: { Row: LlmHealthRow }
+    }
     Functions: Record<string, never>
     Enums: Record<string, never>
   }

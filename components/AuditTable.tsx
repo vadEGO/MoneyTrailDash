@@ -4,7 +4,7 @@ interface AuditTableProps {
   rows: AuditRow[]
 }
 
-function categoryBadge(category: string | undefined) {
+function categoryBadge(category: string | null | undefined) {
   const map: Record<string, { label: string; cls: string }> = {
     TP: { label: 'True Positive',  cls: 'text-green-400 bg-green-950/30 border-green-900' },
     TN: { label: 'True Negative',  cls: 'text-blue-400 bg-blue-950/30 border-blue-900' },
