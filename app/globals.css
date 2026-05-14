@@ -3,16 +3,45 @@
 @tailwind utilities;
 
 @layer base {
-  *, *::before, *::after {
-    box-sizing: border-box;
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    /* Kinetic Intelligence palette */
+    --bg:            #ffffff;
+    --bg-dim:        #f8f8f8;
+    --border:        #e5e5e5;
+    --border-strong: #d1d1d1;
+    --text:          #1a1c1c;
+    --text-2:        #4c4546;
+    --text-3:        #7e7576;
+    --primary:       #000000;
+    --primary-fg:    #ffffff;
+    /* Status */
+    --red:    #e02424;
+    --amber:  #d97706;
+    --green:  #059669;
+    --blue:   #2563eb;
+    --purple: #7c3aed;
   }
-  html {
-    font-feature-settings: "ss01" on, "cv01" on, "cv10" on;
+
+  html { font-size: 14px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
   }
+
+  /* JetBrains Mono for all numeric/data values */
+  .mono { font-family: var(--font-mono); }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
+
+  /* Traffic light status dots */
+  .dot-red    { width:8px; height:8px; border-radius:50%; background:var(--red); display:inline-block; }
+  .dot-amber  { width:8px; height:8px; border-radius:50%; background:var(--amber); display:inline-block; }
+  .dot-green  { width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; }
+  .dot-blue   { width:8px; height:8px; border-radius:50%; background:var(--blue); display:inline-block; }
 }

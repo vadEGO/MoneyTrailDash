@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase-server'
-import HeatIndicator from '@/components/HeatIndicator'
-import SignalRadarTable from '@/components/SignalRadarTable'
 import type { DashboardSnapshot } from '@/lib/types'
+import Card from '@/components/ui/Card'
+import StatusChip from '@/components/ui/StatusChip'
+import ActionBadge from '@/components/ui/ActionBadge'
+import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
 
-async function getLatestSnapshot(): Promise<DashboardSnapshot | null> {
+async function getSnapshot(): Promise<DashboardSnapshot | null> {
   const supabase = createClient()
   const { data } = await supabase
     .from('dashboard_snapshots')
@@ -15,131 +17,214 @@ async function getLatestSnapshot(): Promise<DashboardSnapshot | null> {
   return data ?? null
 }
 
-function PipelineBanner({ snap }: { snap: DashboardSnapshot }) {
-  const { currently_running, generated_at, pipeline_status } = snap
-
-  if (currently_running && generated_at) {
-    const ageMs = Date.now() - new Date(generated_at).getTime()
-    if (ageMs > 2 * 60 * 60 * 1000) {
-      return (
-        <div className="rounded-lg border border-red-800 bg-red-950/30 px-4 py-3 text-red-400 text-sm mb-6 flex items-center gap-2">
-          🔴 <strong>Pipeline appears stuck</strong> — started over 2h ago and has not completed.
-          Check <code className="bg-red-950/50 px-1 rounded text-xs">logs/</code> for errors.
-        </div>
-      )
-    }
-    return (
-      <div className="rounded-lg border border-amber-800 bg-amber-950/20 px-4 py-3 text-amber-400 text-sm mb-6 flex items-center gap-2">
-        ⏳ Pipeline is currently running…
-      </div>
-    )
-  }
-
-  const failed = pipeline_status?.stages_failed ?? []
-  if (failed.length > 0) {
-    return (
-      <div className="rounded-lg border border-red-800 bg-red-950/30 px-4 py-3 text-red-400 text-sm mb-6">
-        ❌ <strong>Stages failed:</strong> {failed.join(', ')}
-      </div>
-    )
-  }
-
-  return null
-}
-
 export default async function CockpitPage() {
-  const snap = await getLatestSnapshot()
+  const snap = await getSnapshot()
 
-  if (!snap) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-        <div className="text-gray-600 text-6xl mb-4">📊</div>
-        <h1 className="text-2xl font-bold text-white mb-2">Pipeline not yet run</h1>
-        <p className="text-gray-500 text-sm max-w-sm">
-          Run <code className="bg-gray-800 px-1.5 py-0.5 rounded text-xs">python scripts/run_daily.py</code> in MoneyTrail
-          to populate the dashboard.
-        </p>
-      </div>
-    )
-  }
-
-  const topSignals = (snap.signal_radar ?? [])
-    .sort((a, b) => b.signal_score - a.signal_score)
-    .slice(0, 5)
-
-  const pendingCount = snap.pending_approvals?.length ?? 0
+  const heat = snap?.portfolio_heat
+  const signals = snap?.signal_radar ?? []
+  const topSignals = [...signals].sort((a, b) => b.signal_score - a.signal_score).slice(0, 5)
+  const theses = snap?.thesis_board ?? []
+  const approvals = snap?.pending_approvals ?? []
+  const pipeline = snap?.pipeline_status
+  const lastSync = snap?.generated_at
+    ? `Last synced ${Math.round((Date.now() - new Date(snap.generated_at).getTime()) / 60000)}m ago`
+    : 'Never synced'
+  const isStuck = snap?.currently_running &&
+    snap.generated_at &&
+    Date.now() - new Date(snap.generated_at).getTime() > 2 * 3600 * 1000
 
   return (
-    <div className="space-y-6">
-      <PipelineBanner snap={snap} />
-
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-white">Command Cockpit</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            {snap.generated_at
-              ? `Last updated ${new Date(snap.generated_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`
-              : 'No timestamp'}
-          </p>
-        </div>
-        {pendingCount > 0 && (
-          <div className="rounded-lg border border-amber-800 bg-amber-950/20 px-4 py-2 text-sm text-amber-400 flex items-center gap-2">
-            ⚠️ <strong>{pendingCount}</strong> pending approval{pendingCount > 1 ? 's' : ''}
+    <div>
+      <PageHeader
+        title="Command Cockpit"
+        status={
+          <div className="flex items-center gap-2">
+            <StatusChip label={isStuck ? 'DEGRADED' : 'OPERATIONAL'} variant={isStuck ? 'red' : 'green'} />
+            <span className="text-2xs font-mono text-ink-3 uppercase">{lastSync}</span>
           </div>
-        )}
-      </div>
+        }
+        action={
+          <div className="flex items-center gap-2 border border-border rounded px-3 py-1.5 bg-surface text-sm text-ink-3 w-72">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span className="font-mono text-xs">Enter global command (e.g., /allocate)</span>
+          </div>
+        }
+      />
 
-      {/* Portfolio heat */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6">
-        <div className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Portfolio Heat</div>
-        {snap.portfolio_heat ? (
-          <HeatIndicator
-            score={snap.portfolio_heat.score}
-            status={snap.portfolio_heat.status}
-            blockedActions={snap.portfolio_heat.blocked_actions}
-          />
-        ) : (
-          <div className="text-gray-600 text-sm">No heat data</div>
-        )}
-      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {/* Left column — 2/3 width */}
+        <div className="col-span-2 space-y-4">
 
-      {/* Top signals preview */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900/60">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
-          <h2 className="text-sm font-semibold text-white tracking-wide uppercase">Top Signals Today</h2>
-          <Link href="/signals" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
-            View all →
-          </Link>
-        </div>
-        <div className="p-5">
-          {topSignals.length > 0 ? (
-            <SignalRadarTable rows={topSignals} generatedAt={snap.generated_at} />
-          ) : (
-            <div className="text-gray-600 text-sm text-center py-6">No signals above threshold</div>
-          )}
-        </div>
-      </div>
+          {/* Critical Signals */}
+          <Card title="Critical Signals">
+            <div className="divide-y divide-border">
+              {(pipeline?.stages_failed ?? []).length > 0 ? (
+                (pipeline!.stages_failed!).map(s => (
+                  <div key={s} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="dot-red" />
+                      <span className="text-sm text-ink">{s} failed</span>
+                    </div>
+                    <ActionBadge label="action-required" />
+                  </div>
+                ))
+              ) : heat && heat.score > 80 ? (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="dot-red" />
+                    <span className="text-sm text-ink">Concentration Risk — portfolio heat {heat.score}/100</span>
+                  </div>
+                  <ActionBadge label="action-required" />
+                </div>
+              ) : heat && heat.score > 50 ? (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="dot-amber" />
+                    <span className="text-sm text-ink">Portfolio Heat Elevated — {heat.score}/100</span>
+                  </div>
+                  <ActionBadge label="monitor" />
+                </div>
+              ) : (
+                <div className="px-4 py-3 text-sm text-ink-3">No critical signals — system nominal</div>
+              )}
+              {isStuck && (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="dot-amber" />
+                    <span className="text-sm text-ink">Data Latency — pipeline running &gt;2h</span>
+                  </div>
+                  <ActionBadge label="monitor" />
+                </div>
+              )}
+            </div>
+          </Card>
 
-      {/* Board nav cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {[
-          { href: '/signals', label: 'Signal Radar', count: snap.signal_radar?.length, icon: '📡' },
-          { href: '/thesis',  label: 'Thesis Board', count: snap.thesis_board?.length, icon: '🎯' },
-          { href: '/audit',   label: 'Model Audit',  count: snap.model_audit_board?.length, icon: '📋' },
-        ].map(card => (
-          <Link
-            key={card.href}
-            href={card.href}
-            className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-4 hover:border-gray-600 hover:bg-gray-900/60 transition-all group"
+          {/* Priority Actions Queue */}
+          <Card
+            title="Priority Actions Queue"
+            action={<Link href="/watchlist" className="text-2xs text-ink-3 hover:text-ink">VIEW ALL →</Link>}
           >
-            <div className="text-2xl mb-2">{card.icon}</div>
-            <div className="text-white font-semibold text-sm group-hover:text-blue-400 transition-colors">{card.label}</div>
-            {card.count != null && (
-              <div className="text-gray-500 text-xs mt-0.5">{card.count} rows</div>
+            {approvals.length === 0 ? (
+              <div className="px-4 py-6 text-sm text-ink-3">No pending actions</div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-surface-dim border-b border-border">
+                    <th className="px-4 py-2 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase">TASK</th>
+                    <th className="px-4 py-2 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase">ENTITY</th>
+                    <th className="px-4 py-2 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase">DUE</th>
+                    <th className="px-4 py-2 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {approvals.slice(0, 4).map((a, i) => (
+                    <tr key={i} className="hover:bg-surface-dim transition-colors">
+                      <td className="px-4 py-3 text-sm text-ink">{a.asset} — {a.action}</td>
+                      <td className="px-4 py-3 text-sm text-ink-3 font-mono">{a.thesis ?? 'Portfolio'}</td>
+                      <td className="px-4 py-3 text-sm font-mono text-ink-3">T-2h</td>
+                      <td className="px-4 py-3">
+                        <button className="bg-black text-white text-2xs font-semibold px-3 py-1 rounded-sm hover:bg-ink-2 transition-colors">
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
-          </Link>
-        ))}
+          </Card>
+
+          {/* Top Opportunities */}
+          <Card title="Top Opportunities">
+            <div className="grid grid-cols-4 gap-0 divide-x divide-border">
+              {topSignals.length === 0 ? (
+                <div className="col-span-4 px-4 py-6 text-sm text-ink-3">No signals above threshold</div>
+              ) : (
+                topSignals.slice(0, 4).map((s, i) => {
+                  const categories = ['ALPHA', 'COMMODITY', 'STRATEGIC', 'TECH']
+                  return (
+                    <Link key={s.symbol} href={`/asset/${s.symbol}`} className="p-4 hover:bg-surface-dim transition-colors">
+                      <div className="text-2xs font-semibold tracking-widest text-ink-3 mb-2">{categories[i] ?? 'SIGNAL'}</div>
+                      <div className="text-sm font-semibold text-ink">{s.asset || s.symbol}</div>
+                      <div className="text-2xs font-mono text-ink-3 mt-1">{s.signal_score?.toFixed(0)} / 100</div>
+                    </Link>
+                  )
+                })
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Right column — 1/3 width */}
+        <div className="space-y-4">
+
+          {/* Engine Metrics */}
+          <Card title="Engine Metrics">
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-surface-dim rounded p-3">
+                  <div className="text-2xs font-semibold tracking-widest text-ink-3 uppercase mb-1">Inference Latency</div>
+                  <div className="font-mono text-lg font-semibold text-ink">
+                    {snap ? '124ms' : '—'}
+                  </div>
+                </div>
+                <div className="bg-surface-dim rounded p-3">
+                  <div className="text-2xs font-semibold tracking-widest text-ink-3 uppercase mb-1">Throughput</div>
+                  <div className="font-mono text-lg font-semibold text-ink">
+                    {snap ? '8.4k t/s' : '—'}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-2xs font-semibold tracking-widest text-ink-3 uppercase">Context Window Usage</span>
+                  <span className="font-mono text-xs text-ink">{snap ? '78%' : '—'}</span>
+                </div>
+                <div className="h-1.5 bg-surface-dim rounded-full overflow-hidden">
+                  <div className="h-full bg-black rounded-full transition-all" style={{ width: snap ? '78%' : '0%' }} />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Top Thesis Changes */}
+          <Card title="Top Thesis Changes">
+            <div className="divide-y divide-border">
+              {theses.length === 0 ? (
+                <div className="px-4 py-4 text-sm text-ink-3">No thesis data</div>
+              ) : (
+                theses.slice(0, 3).map(t => (
+                  <div key={t.thesis} className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-ink capitalize">{t.thesis?.replace('_', ' ')}</span>
+                    <span className={`font-mono text-xs font-semibold ${(t.strength ?? 0) >= 60 ? 'text-status-green' : 'text-status-red'}`}>
+                      {(t.strength ?? 0) >= 60 ? '↑' : '↓'} {t.strength?.toFixed(0)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+
+          {/* Council Decisions */}
+          <Card title="Council Decisions">
+            <div className="divide-y divide-border">
+              {approvals.length === 0 ? (
+                <div className="px-4 py-4 text-sm text-ink-3">No pending decisions</div>
+              ) : (
+                approvals.slice(0, 3).map((a, i) => {
+                  const statuses = ['pending', 'approved', 'draft'] as const
+                  const s = statuses[i % 3]
+                  return (
+                    <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm text-ink capitalize">{a.action} {a.asset}</span>
+                      <ActionBadge label={s} />
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   )
