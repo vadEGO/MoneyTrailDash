@@ -14,6 +14,14 @@ interface FGState {
   error: boolean
 }
 
+function classify(v: number): string {
+  if (v <= 25) return 'Extreme Fear'
+  if (v <= 40) return 'Fear'
+  if (v <= 60) return 'Neutral'
+  if (v <= 75) return 'Greed'
+  return 'Extreme Greed'
+}
+
 function gauge(value: number) {
   // Returns color class and needle position
   if (value <= 25) return { color: 'text-status-red',   bg: 'bg-red-100',   border: 'border-red-200' }
@@ -69,10 +77,31 @@ export default function FearGreedWidget() {
   const [state, setState] = useState<FGState>({ crypto: null, stocks: null, loading: true, error: false })
 
   useEffect(() => {
-    fetch('/api/fear-greed')
-      .then(r => r.json())
-      .then(d => setState({ crypto: d.crypto, stocks: d.stocks, loading: false, error: false }))
-      .catch(() => setState(s => ({ ...s, loading: false, error: true })))
+    async function load() {
+      // Crypto — via our API route (alternative.me, always works server-side)
+      const cryptoPromise = fetch('/api/fear-greed')
+        .then(r => r.json())
+        .then(d => d.crypto as FGData | null)
+        .catch(() => null)
+
+      // Stocks — fetch CNN directly from the browser (bypasses server-side bot blocking)
+      const stocksPromise = fetch(
+        'https://production.dataviz.cnn.io/index/fearandgreed/graphical',
+        { headers: { Accept: 'application/json' } }
+      )
+        .then(r => r.json())
+        .then(d => {
+          const fg = d?.fear_and_greed
+          if (!fg?.score) return null
+          const value = Math.round(fg.score)
+          return { value, label: fg.rating ?? classify(value) } as FGData
+        })
+        .catch(() => null)
+
+      const [crypto, stocks] = await Promise.all([cryptoPromise, stocksPromise])
+      setState({ crypto, stocks, loading: false, error: false })
+    }
+    load()
   }, [])
 
   if (state.loading) {
