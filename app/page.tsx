@@ -2,6 +2,8 @@ import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
 import PageHeader from '@/components/ui/PageHeader'
 import FearGreedWidget from '@/components/FearGreedWidget'
+import AutoRefresh from '@/components/AutoRefresh'
+import SentimentAlerts from '@/components/SentimentAlerts'
 import Link from 'next/link'
 import { formatAge, getCouncilRuns, getDashboardSummary, getEngineHealth, getOpportunities, getTheses, pct } from '@/lib/openclaw'
 
@@ -28,7 +30,10 @@ export default async function CockpitPage() {
             <span className="text-2xs font-mono text-ink-3 uppercase">{formatAge(summary?.last_synced_at)}</span>
           </div>
         }
+        action={<AutoRefresh />}
       />
+
+      <SentimentAlerts />
 
       <div className="grid grid-cols-4 gap-3 mb-4">
         <Metric label="Claims" value={summary?.claim_count ?? 0} />

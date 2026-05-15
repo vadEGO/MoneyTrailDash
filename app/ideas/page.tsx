@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase-server'
-import type { TradeIdeaLeaderboardRow } from '@/lib/types'
+import type { TradeIdeaLeaderboardRow, MarketCandle } from '@/lib/types'
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
+import Sparkline from '@/components/Sparkline'
 import Link from 'next/link'
 
 function formatPrice(p: number | null | undefined): string {
@@ -62,6 +63,27 @@ export default async function IdeasPage() {
   const rows = (error ? [] : (data as unknown as TradeIdeaLeaderboardRow[])) ?? []
   const activeRows = rows.filter(r => r.status === 'active')
 
+  // Fetch 7-day candles for all active symbols in one query
+  const symbols = activeRows.map(r => r.symbol)
+  const candleMap: Record<string, number[]> = {}
+
+  if (symbols.length > 0) {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
+    const { data: candles } = await supabase
+      .from('market_candles')
+      .select('symbol, close, ts')
+      .in('symbol', symbols)
+      .eq('interval', '1d')
+      .gte('ts', sevenDaysAgo)
+      .order('ts', { ascending: true })
+    ;(candles as unknown as Pick<MarketCandle, 'symbol' | 'close' | 'ts'>[] | null ?? [])
+      .forEach(c => {
+        if (c.close == null) return
+        if (!candleMap[c.symbol]) candleMap[c.symbol] = []
+        candleMap[c.symbol].push(c.close)
+      })
+  }
+
   return (
     <div>
       <PageHeader
@@ -90,7 +112,7 @@ export default async function IdeasPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-surface-dim border-b border-border">
-                  {['RNK', 'SYMBOL', 'CLASS', 'DIR', 'SCORE', 'R/R', 'ENTRY ZONE', 'DECISION', 'AUTHOR', 'P/L'].map(h => (
+                  {['RNK', 'SYMBOL', 'CLASS', 'DIR', '7D', 'SCORE', 'R/R', 'ENTRY ZONE', 'DECISION', 'AUTHOR', 'P/L'].map(h => (
                     <th key={h} className="px-4 py-2.5 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase whitespace-nowrap">
                       {h}
                     </th>
@@ -120,6 +142,9 @@ export default async function IdeasPage() {
                     </td>
                     <td className="px-4 py-3">
                       <DirectionBadge direction={row.direction} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Sparkline prices={candleMap[row.symbol] ?? []} />
                     </td>
                     <td className="px-4 py-3">
                       <ScoreBar score={row.total_score} />
