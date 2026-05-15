@@ -2,13 +2,19 @@ import { createClient } from '@/lib/supabase-server'
 import type {
   DashboardSummary,
   EngineHealthRow,
+  EntryExitPlan,
   LlmHealthRow,
+  OpportunityAction,
+  OpportunityEngineEvent,
   PersonaPosition,
   PublicCouncilRun,
   PublicOpportunity,
   PublicReport,
   PublicThesis,
   ResearchLibraryRow,
+  RvTradeEvent,
+  RvTradeIdea,
+  RvTradeSyncStatus,
 } from '@/lib/types'
 
 function hasSupabaseConfig() {
@@ -104,6 +110,70 @@ export async function getLlmHealth(limit = 14): Promise<LlmHealthRow[]> {
   const { data } = await supabase
     .from('public_llm_health')
     .select('*')
+    .limit(limit)
+  return data ?? []
+}
+
+export async function getRvTradeIdeas(limit = 80): Promise<RvTradeIdea[]> {
+  if (!hasSupabaseConfig()) return []
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('public_rv_trade_leaderboard')
+    .select('*')
+    .order('rank', { ascending: true })
+    .limit(limit)
+  return data ?? []
+}
+
+export async function getRvTradeEvents(limit = 40): Promise<RvTradeEvent[]> {
+  if (!hasSupabaseConfig()) return []
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('public_rv_trade_events')
+    .select('*')
+    .order('event_at', { ascending: false, nullsFirst: false })
+    .limit(limit)
+  return data ?? []
+}
+
+export async function getRvTradeSyncStatus(limit = 10): Promise<RvTradeSyncStatus[]> {
+  if (!hasSupabaseConfig()) return []
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('public_rv_trade_sync_status')
+    .select('*')
+    .limit(limit)
+  return data ?? []
+}
+
+export async function getOpportunityActions(limit = 120): Promise<OpportunityAction[]> {
+  if (!hasSupabaseConfig()) return []
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('public_opportunity_action_board')
+    .select('*')
+    .limit(limit)
+  return data ?? []
+}
+
+export async function getEntryExitPlans(limit = 80): Promise<EntryExitPlan[]> {
+  if (!hasSupabaseConfig()) return []
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('public_entry_exit_plans')
+    .select('*')
+    .order('total_score', { ascending: false, nullsFirst: false })
+    .limit(limit)
+  return data ?? []
+}
+
+export async function getOpportunityEngineEvents(limit = 40): Promise<OpportunityEngineEvent[]> {
+  if (!hasSupabaseConfig()) return []
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('public_opportunity_engine_events')
+    .select('*')
+    .order('event_at', { ascending: false, nullsFirst: false })
     .limit(limit)
   return data ?? []
 }

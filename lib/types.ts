@@ -121,6 +121,150 @@ export interface LlmHealthRow {
   failed_count: number | null
 }
 
+export interface RvTradeIdea {
+  rank: number | null
+  id: string
+  slug: string | null
+  title: string
+  symbol: string | null
+  normalized_symbol: string | null
+  market: string | null
+  asset_class: string | null
+  action: string | null
+  direction: string | null
+  status: string | null
+  is_live: boolean | null
+  is_tracked: boolean | null
+  is_watchlisted: boolean | null
+  author_name: string | null
+  vote_in: number | null
+  vote_out: number | null
+  vote_watching: number | null
+  comments_count: number | null
+  current_price: number | null
+  entry_price: number | null
+  stop_loss: number | null
+  take_profit: number | null
+  risk_reward: number | null
+  total_return: number | null
+  source_url: string | null
+  source_created_at: string | null
+  source_updated_at: string | null
+  expires_at: string | null
+  total_score: number | null
+  verdict: string | null
+  source_quality: number | null
+  evidence_quality: number | null
+  technical_setup: number | null
+  risk_reward_score: number | null
+  thesis_fit: number | null
+  macro_liquidity_fit: number | null
+  portfolio_relevance: number | null
+  freshness: number | null
+  reasoning_summary: string | null
+  invalidation: string | null
+  next_action: string | null
+  price_state: string | null
+  computed_at: string | null
+}
+
+export interface RvTradeEvent {
+  id: string
+  idea_id: string | null
+  event_type: string
+  title: string | null
+  symbol: string | null
+  old_value: string | null
+  new_value: string | null
+  detail: string | null
+  event_at: string | null
+  sync_batch_id: string | null
+}
+
+export interface RvTradeSyncStatus {
+  sync_batch_id: string
+  status: string | null
+  last_synced_at: string | null
+  workflow_name: string | null
+  records_rv_trade_ideas: number | null
+  records_rv_trade_events: number | null
+  error_summary: string | null
+  is_stale: boolean | null
+}
+
+export interface OpportunityAction {
+  state_rank: number | null
+  id: string
+  source: string
+  source_record_id: string | null
+  symbol: string | null
+  normalized_symbol: string | null
+  title: string
+  thesis: string | null
+  direction: string | null
+  asset_class: string | null
+  status: string | null
+  action_state: string
+  lifecycle: string
+  total_score: number | null
+  thesis_score: number | null
+  entry_score: number | null
+  risk_reward_score: number | null
+  catalyst_score: number | null
+  source_score: number | null
+  liquidity_score: number | null
+  portfolio_fit_score: number | null
+  current_price: number | null
+  ideal_entry: number | null
+  entry_min: number | null
+  entry_max: number | null
+  do_not_chase_above: number | null
+  stop_loss: number | null
+  take_profit_1: number | null
+  take_profit_2: number | null
+  take_profit_3: number | null
+  trailing_exit_trigger: string | null
+  invalidation: string | null
+  why_now: string | null
+  next_action: string | null
+  what_to_watch: string | null
+  source_url: string | null
+  is_tracked: boolean | null
+  is_watchlisted: boolean | null
+  expires_at: string | null
+  deleted_at: string | null
+  discovered_at: string | null
+  updated_at: string | null
+}
+
+export interface EntryExitPlan {
+  id: string
+  opportunity_id: string
+  plan_type: string
+  entry_zone: string | null
+  exit_plan: string | null
+  risk_notes: string | null
+  confidence: number | null
+  updated_at: string | null
+  symbol: string | null
+  normalized_symbol: string | null
+  title: string | null
+  action_state: string | null
+  total_score: number | null
+}
+
+export interface OpportunityEngineEvent {
+  id: string
+  opportunity_id: string | null
+  event_type: string
+  action_state: string | null
+  symbol: string | null
+  title: string | null
+  detail: string | null
+  event_at: string | null
+  sync_batch_id: string | null
+}
+
 // Legacy MoneyTrail asset-detail tables retained so older routes compile while the
 // cockpit moves to OpenClaw public views.
 export interface PublicResearch {
@@ -295,6 +439,13 @@ export interface Database {
       public_trade_idea_leaderboard: { Row: TradeIdeaLeaderboardRow }
       public_symbol_trade_ideas: { Row: TradeIdeaDetail }
       public_symbol_chart_overlays: { Row: ChartOverlayLevel }
+      public_rv_trade_leaderboard: { Row: RvTradeIdea }
+      public_rv_trade_history: { Row: RvTradeIdea }
+      public_rv_trade_events: { Row: RvTradeEvent }
+      public_rv_trade_sync_status: { Row: RvTradeSyncStatus }
+      public_opportunity_action_board: { Row: OpportunityAction }
+      public_entry_exit_plans: { Row: EntryExitPlan }
+      public_opportunity_engine_events: { Row: OpportunityEngineEvent }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>
