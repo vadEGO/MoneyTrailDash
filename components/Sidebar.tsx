@@ -9,7 +9,6 @@ const NAV = [
   { href: '/action',    label: 'ACTION',    icon: ActionIcon },
   { href: '/watchlist', label: 'WATCHLIST', icon: WatchlistIcon },
   { href: '/ideas',     label: 'IDEAS',     icon: IdeasIcon },
-  { href: '/trades',    label: 'RV TRADES', icon: TradesIcon },
   { href: '/theses',    label: 'THESES',    icon: ThesesIcon },
   { href: '/council',   label: 'COUNCIL',   icon: CouncilIcon },
   { href: '/library',   label: 'LIBRARY',   icon: LibraryIcon },
@@ -176,13 +175,6 @@ function IdeasIcon({ size, active }: { size: number; active: boolean }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
       <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
       <polyline points="16 7 22 7 22 13"/>
-    </svg>
-  )
-}
-function TradesIcon({ size, active }: { size: number; active: boolean }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
-      <path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>
     </svg>
   )
 }
