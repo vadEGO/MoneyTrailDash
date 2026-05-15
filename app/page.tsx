@@ -1,6 +1,7 @@
 import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
 import PageHeader from '@/components/ui/PageHeader'
+import FearGreedWidget from '@/components/FearGreedWidget'
 import Link from 'next/link'
 import { formatAge, getCouncilRuns, getDashboardSummary, getEngineHealth, getOpportunities, getTheses, pct } from '@/lib/openclaw'
 
@@ -84,6 +85,12 @@ export default async function CockpitPage() {
         </div>
 
         <div className="space-y-4">
+          <Card title="Market Sentiment">
+            <div className="p-3">
+              <FearGreedWidget />
+            </div>
+          </Card>
+
           <Card title="Thesis Movement">
             <div className="divide-y divide-border">
               {theses.length === 0 ? (
