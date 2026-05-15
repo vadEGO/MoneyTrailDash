@@ -152,6 +152,66 @@ export interface PublicTpLayer {
   status: string | null
 }
 
+// --- Trade Ideas types ---
+
+export interface TradeIdeaLeaderboardRow {
+  symbol: string
+  asset_name: string | null
+  asset_class: string | null
+  last_price: number | null
+  tradingview_id: string | null
+  idea_id: string
+  direction: string | null
+  source_author: string | null
+  source_rank: number | null
+  entry_min: number | null
+  entry_max: number | null
+  stop_loss: number | null
+  take_profit_1: number | null
+  risk_reward: number | null
+  levels_source: string | null
+  time_horizon: string | null
+  decision: string | null
+  pl_pct: number | null
+  status: string
+  total_score: number | null
+}
+
+export interface TradeIdeaDetail extends TradeIdeaLeaderboardRow {
+  source_quality: number | null
+  evidence_quality: number | null
+  technical_setup: number | null
+  risk_reward_score: number | null
+  thesis_fit: number | null
+  macro_liquidity_fit: number | null
+  portfolio_relevance: number | null
+  freshness: number | null
+  take_profit_2: number | null
+  take_profit_3: number | null
+  source_url: string | null
+  notes: string | null
+}
+
+export interface ChartOverlayLevel {
+  symbol: string
+  idea_id: string | null
+  level_type: string  // entry_min | entry_max | stop_loss | tp1 | tp2 | tp3 | resistance | support
+  price: number
+  source: string
+  label: string | null
+}
+
+export interface MarketCandle {
+  symbol: string
+  interval: string
+  ts: string
+  open: number | null
+  high: number | null
+  low: number | null
+  close: number | null
+  volume: number | null
+}
+
 // Minimal Database interface for typed Supabase client
 export interface Database {
   public: {
@@ -160,8 +220,17 @@ export interface Database {
       public_research: { Row: PublicResearch }
       public_lilo: { Row: PublicLilo }
       public_tp_layers: { Row: PublicTpLayer }
+      symbols: { Row: { symbol: string; asset_name: string | null; asset_class: string | null; last_price: number | null; tradingview_id: string | null } }
+      trade_ideas: { Row: TradeIdeaDetail }
+      trade_idea_scores: { Row: { idea_id: string; symbol: string; total_score: number | null } }
+      trade_idea_levels: { Row: ChartOverlayLevel & { id: string; created_at: string } }
+      market_candles: { Row: MarketCandle }
     }
-    Views: Record<string, never>
+    Views: {
+      public_trade_idea_leaderboard: { Row: TradeIdeaLeaderboardRow }
+      public_symbol_trade_ideas: { Row: TradeIdeaDetail }
+      public_symbol_chart_overlays: { Row: ChartOverlayLevel }
+    }
     Functions: Record<string, never>
     Enums: Record<string, never>
   }

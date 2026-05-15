@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 const NAV = [
   { href: '/',          label: 'COCKPIT',   icon: CockpitIcon },
   { href: '/watchlist', label: 'WATCHLIST', icon: WatchlistIcon },
+  { href: '/ideas',     label: 'IDEAS',     icon: IdeasIcon },
   { href: '/theses',    label: 'THESES',    icon: ThesesIcon },
   { href: '/council',   label: 'COUNCIL',   icon: CouncilIcon },
   { href: '/library',   label: 'LIBRARY',   icon: LibraryIcon },
@@ -122,6 +123,14 @@ function HealthIcon({ size, active }: { size: number; active: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  )
+}
+function IdeasIcon({ size, active }: { size: number; active: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+      <polyline points="16 7 22 7 22 13"/>
     </svg>
   )
 }
