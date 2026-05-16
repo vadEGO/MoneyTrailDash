@@ -101,6 +101,21 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
           borderDownColor: '#e02424',
           wickUpColor:     '#059669',
           wickDownColor:   '#e02424',
+          // Override autoscale so price lines (levels) never affect the Y axis range.
+          // Without this, a stop at $111 on a $382 stock zooms the chart out to show
+          // both, making the candles a 1px sliver at the top.
+          autoscaleInfoProvider: (original: () => unknown) => {
+            const res = original() as { priceRange: { minValue: number; maxValue: number } } | null
+            if (!res) return res
+            // Add 5% padding around candle prices only
+            const range = res.priceRange.maxValue - res.priceRange.minValue
+            return {
+              priceRange: {
+                minValue: res.priceRange.minValue - range * 0.05,
+                maxValue: res.priceRange.maxValue + range * 0.05,
+              },
+            }
+          },
         })
 
         if (candles.length > 0) {
@@ -116,7 +131,6 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
             .sort((a, b) => (a.time as number) - (b.time as number))
 
           candleSeries.setData(candleData)
-          // fitContent called after ALL series are set (see bottom of init)
         }
 
         // ── All level lines on the candlestick series ─────────────────────
