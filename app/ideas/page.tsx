@@ -7,7 +7,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
 import IdeaDrawer from '@/components/IdeaDrawer'
-import { formatAge } from '@/lib/openclaw'
+import { formatAge } from '@/lib/fmt'
 
 export default function IdeasPage() {
   const [ideas, setIdeas]   = useState<OpportunityAction[]>([])
