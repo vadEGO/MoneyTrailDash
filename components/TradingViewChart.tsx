@@ -3,15 +3,12 @@
 /**
  * TradingViewChart — Lightweight Charts v5 candlestick chart with level overlays.
  *
- * Levels drawn as price lines on the candlestick series:
- *   entry_min / entry_max  — green dashed
- *   stop_loss              — solid red
- *   tp1 / tp2 / tp3        — green dashed
- *   resistance             — amber dotted
- *   support                — blue dotted
+ * All levels (entry, stop, TP, resistance, support) are drawn as price lines
+ * on the candlestick series. Price lines don't affect the visible price range,
+ * so the viewport always centres on the actual candle data.
  *
- * Entry zone shading is done with a second AreaSeries (no baseValue — v5 removed it).
- * The area spans from 0 to entry_max; opacity is low so it reads as a band.
+ * autoSize:true lets the chart track its container — no zero-width race on
+ * drawer open animation.
  */
 
 import { useEffect, useRef, memo } from 'react'
@@ -56,7 +53,7 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
         const {
           createChart,
           CandlestickSeries,
-          AreaSeries,
+          LineSeries,
           LineStyle,
         } = await import('lightweight-charts')
 
@@ -66,7 +63,7 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const chart: any = createChart(containerRef.current, {
-          width:  containerRef.current.clientWidth,
+          autoSize: true,   // tracks container size automatically — no zero-width race on drawer open
           height,
           layout: {
             background: { color: '#ffffff' },
@@ -80,7 +77,7 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
           },
           rightPriceScale: {
             borderColor: '#e5e0e1',
-            scaleMargins: { top: 0.1, bottom: 0.1 },
+            // no scaleMargins — let fitContent decide the range so price is centred
           },
           timeScale: {
             borderColor: '#e5e0e1',
@@ -119,64 +116,14 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
             .sort((a, b) => (a.time as number) - (b.time as number))
 
           candleSeries.setData(candleData)
-          chart.timeScale().fitContent()
+          // fitContent called after ALL series are set (see bottom of init)
         }
 
-        // ── Entry zone shading (AreaSeries from entry_min to entry_max) ──
-
-        const entryMin = levels.find(l => l.level_type === 'entry_min')?.price
-        const entryMax = levels.find(l => l.level_type === 'entry_max')?.price
-
-        if (entryMin != null && entryMax != null && candles.length > 0) {
-          const areaSeries = chart.addSeries(AreaSeries, {
-            topColor:    'rgba(5, 150, 105, 0.15)',
-            bottomColor: 'rgba(5, 150, 105, 0.05)',
-            lineColor:   'rgba(5, 150, 105, 0.3)',
-            lineWidth:   1,
-            lineStyle:   LineStyle.Dashed,
-            priceLineVisible:      false,
-            lastValueVisible:      false,
-            crosshairMarkerVisible: false,
-          })
-
-          // Set area data at entry_max so it fills down to entry_min visually.
-          // We use the candlestick timestamps so the area spans the full chart.
-          const times = candles
-            .filter(c => c.ts)
-            .map(c => Math.floor(new Date(c.ts).getTime() / 1000))
-            .sort((a, b) => a - b)
-
-          areaSeries.setData(
-            times.map(t => ({
-              time:  t as unknown as import('lightweight-charts').Time,
-              value: entryMax,
-            }))
-          )
-
-          // Draw entry_min as a price line on the area series for the lower bound
-          areaSeries.createPriceLine({
-            price:     entryMin,
-            color:     '#059669',
-            lineWidth: 1,
-            lineStyle: LineStyle.Dashed,
-            axisLabelVisible: true,
-            title: `Entry ↓ ${fmtPrice(entryMin)}`,
-          })
-          areaSeries.createPriceLine({
-            price:     entryMax,
-            color:     '#059669',
-            lineWidth: 1,
-            lineStyle: LineStyle.Dashed,
-            axisLabelVisible: true,
-            title: `Entry ↑ ${fmtPrice(entryMax)}`,
-          })
-        }
-
-        // ── All other level lines ─────────────────────────────────────────
-        // Skip entry_min/entry_max — handled by area series above
+        // ── All level lines on the candlestick series ─────────────────────
+        // Price lines don't affect the visible price range — viewport stays
+        // centred on actual candle prices.
 
         for (const level of levels) {
-          if (level.level_type === 'entry_min' || level.level_type === 'entry_max') continue
           const style = LEVEL_STYLES[level.level_type]
           if (!style) continue
 
@@ -196,7 +143,6 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
 
         // If no candles but we have levels, draw lines on a LineSeries placeholder
         if (candles.length === 0 && levels.length > 0) {
-          const { LineSeries } = await import('lightweight-charts')
           const placeholder = chart.addSeries(LineSeries, {
             color:            'transparent',
             lineWidth:        1,
@@ -225,15 +171,11 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
           chart.timeScale().fitContent()
         }
 
-        // ── Resize observer ───────────────────────────────────────────────
+        // Fit after all series + levels are set so the viewport centres on candles
+        chart.timeScale().fitContent()
 
-        const ro = new ResizeObserver(entries => {
-          if (!entries[0] || !chart) return
-          chart.resize(entries[0].contentRect.width, height)
-        })
-        ro.observe(containerRef.current!)
-
-        chartRef.current = { chart, ro }
+        // autoSize:true handles resize — no manual ResizeObserver needed
+        chartRef.current = { chart }
 
       } catch (err) {
         console.error('[TradingViewChart] init error:', err)
@@ -245,9 +187,8 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
     return () => {
       destroyed = true
       if (chartRef.current) {
-        const { chart, ro } = chartRef.current
-        try { ro.disconnect() } catch (_) {}
-        try { chart.remove()  } catch (_) {}
+        const { chart } = chartRef.current
+        try { chart.remove() } catch (_) {}
         chartRef.current = null
       }
     }
