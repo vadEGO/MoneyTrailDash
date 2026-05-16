@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { TradeIdeaDetail, ChartOverlayLevel, MarketCandle } from '@/lib/types'
 import StatusChip from '@/components/ui/StatusChip'
 import Card from '@/components/ui/Card'
+import TradingViewChart from '@/components/TradingViewChart'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -14,142 +15,6 @@ function fmt(p: number | null | undefined): string {
   if (p >= 1000) return `$${p.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
   if (p >= 1) return `$${p.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
   return `$${p.toFixed(4)}`
-}
-
-// ─── SVG Price Chart ─────────────────────────────────────────────────────────
-
-interface ChartProps {
-  candles: MarketCandle[]
-  levels: ChartOverlayLevel[]
-}
-
-function PriceChart({ candles, levels }: ChartProps) {
-  const W = 580
-  const H = 300
-  const PAD_L = 60
-  const PAD_R = 70
-  const PAD_T = 16
-  const PAD_B = 24
-
-  // Collect all relevant prices to compute y-axis range
-  const allPrices: number[] = [
-    ...candles.flatMap(c => [c.high, c.low, c.close, c.open].filter((v): v is number => v != null)),
-    ...levels.map(l => l.price),
-  ]
-
-  if (allPrices.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 bg-surface-dim border border-border rounded text-ink-3 text-sm">
-        No price data — levels will appear once candles are synced
-      </div>
-    )
-  }
-
-  const minP = Math.min(...allPrices) * 0.97
-  const maxP = Math.max(...allPrices) * 1.03
-  const priceRange = maxP - minP
-
-  const toY = (p: number) => PAD_T + (H - PAD_T - PAD_B) * (1 - (p - minP) / priceRange)
-  const candleW = candles.length > 0
-    ? Math.max(2, Math.min(8, (W - PAD_L - PAD_R) / candles.length - 1))
-    : 6
-
-  // X positions for candles
-  const chartW = W - PAD_L - PAD_R
-  const toX = (i: number) => PAD_L + (i + 0.5) * (chartW / Math.max(candles.length, 1))
-
-  // Level styling
-  const levelStyle: Record<string, { stroke: string; dash: string; label: string }> = {
-    entry_min:  { stroke: '#059669', dash: '4,3',  label: 'Entry min' },
-    entry_max:  { stroke: '#059669', dash: '4,3',  label: 'Entry max' },
-    stop_loss:  { stroke: '#e02424', dash: '0',     label: 'Stop' },
-    tp1:        { stroke: '#059669', dash: '6,3',  label: 'TP1' },
-    tp2:        { stroke: '#059669', dash: '6,3',  label: 'TP2' },
-    tp3:        { stroke: '#059669', dash: '6,3',  label: 'TP3' },
-    resistance: { stroke: '#d97706', dash: '3,3',  label: 'R' },
-    support:    { stroke: '#2563eb', dash: '3,3',  label: 'S' },
-  }
-
-  // Find entry zone for shading
-  const entryMin = levels.find(l => l.level_type === 'entry_min')?.price
-  const entryMax = levels.find(l => l.level_type === 'entry_max')?.price
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
-      {/* Background */}
-      <rect x={PAD_L} y={PAD_T} width={chartW} height={H - PAD_T - PAD_B} fill="#f8f8f8" />
-
-      {/* Entry zone shading */}
-      {entryMin != null && entryMax != null && (
-        <rect
-          x={PAD_L}
-          y={toY(entryMax)}
-          width={chartW}
-          height={Math.abs(toY(entryMin) - toY(entryMax))}
-          fill="#059669"
-          fillOpacity={0.08}
-        />
-      )}
-
-      {/* Candles */}
-      {candles.map((c, i) => {
-        if (c.open == null || c.close == null || c.high == null || c.low == null) return null
-        const x = toX(i)
-        const isUp = c.close >= c.open
-        const color = isUp ? '#059669' : '#e02424'
-        const bodyTop = toY(Math.max(c.open, c.close))
-        const bodyBot = toY(Math.min(c.open, c.close))
-        const bodyH = Math.max(1, bodyBot - bodyTop)
-        return (
-          <g key={i}>
-            <line x1={x} y1={toY(c.high)} x2={x} y2={toY(c.low)} stroke={color} strokeWidth="1" />
-            <rect x={x - candleW / 2} y={bodyTop} width={candleW} height={bodyH} fill={color} />
-          </g>
-        )
-      })}
-
-      {/* Level lines */}
-      {levels.map((level, i) => {
-        const style = levelStyle[level.level_type] ?? { stroke: '#4c4546', dash: '2,2', label: level.level_type }
-        const y = toY(level.price)
-        if (y < PAD_T - 4 || y > H - PAD_B + 4) return null
-        return (
-          <g key={`level-${i}`}>
-            <line
-              x1={PAD_L} y1={y} x2={W - PAD_R} y2={y}
-              stroke={style.stroke}
-              strokeWidth="1.5"
-              strokeDasharray={style.dash}
-              opacity="0.9"
-            />
-            {/* Right label */}
-            <rect x={W - PAD_R + 2} y={y - 9} width={PAD_R - 4} height={14} rx="2" fill={style.stroke} fillOpacity="0.12" />
-            <text x={W - PAD_R + 5} y={y + 2} fontSize="9" fill={style.stroke} fontFamily="monospace" fontWeight="600">
-              {style.label} {fmt(level.price).replace('$', '')}
-            </text>
-          </g>
-        )
-      })}
-
-      {/* Y-axis price labels */}
-      {[0, 0.25, 0.5, 0.75, 1].map(frac => {
-        const price = minP + frac * priceRange
-        const y = toY(price)
-        return (
-          <g key={frac}>
-            <line x1={PAD_L - 4} y1={y} x2={PAD_L} y2={y} stroke="#e5e5e5" />
-            <text x={PAD_L - 6} y={y + 3} fontSize="9" fill="#7e7576" textAnchor="end" fontFamily="monospace">
-              {fmt(price).replace('$', '')}
-            </text>
-          </g>
-        )
-      })}
-
-      {/* Border */}
-      <rect x={PAD_L} y={PAD_T} width={chartW} height={H - PAD_T - PAD_B}
-        fill="none" stroke="#e5e5e5" strokeWidth="1" />
-    </svg>
-  )
 }
 
 // ─── Score bar ───────────────────────────────────────────────────────────────
@@ -335,8 +200,8 @@ export default function IdeaSymbolPage({ params }: { params: { symbol: string } 
                 {candles.length > 0 ? `${candles.length}d candles` : 'Levels only'}
               </span>
             }>
-              <div className="p-4">
-                <PriceChart candles={candles} levels={levels} />
+              <div className="p-2">
+                <TradingViewChart candles={candles} levels={levels} symbol={symbol} height={380} />
                 <LevelLegend />
                 {resistanceLevels.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
