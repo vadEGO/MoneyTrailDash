@@ -94,6 +94,19 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
 
         // ── Candlestick series ────────────────────────────────────────────
 
+        // Pre-compute candle price range so autoscaleInfoProvider can use it.
+        // This is the only source of truth for the Y axis — level prices are excluded.
+        const validCandles = candles.filter(
+          c => c.open != null && c.high != null && c.low != null && c.close != null
+        )
+        let candleMin = Infinity
+        let candleMax = -Infinity
+        for (const c of validCandles) {
+          if (c.low!  < candleMin) candleMin = c.low!
+          if (c.high! > candleMax) candleMax = c.high!
+        }
+        const candleRange = candleMax - candleMin
+
         const candleSeries = chart.addSeries(CandlestickSeries, {
           upColor:         '#059669',
           downColor:       '#e02424',
@@ -101,26 +114,20 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
           borderDownColor: '#e02424',
           wickUpColor:     '#059669',
           wickDownColor:   '#e02424',
-          // Override autoscale so price lines (levels) never affect the Y axis range.
-          // Without this, a stop at $111 on a $382 stock zooms the chart out to show
-          // both, making the candles a 1px sliver at the top.
-          autoscaleInfoProvider: (original: () => unknown) => {
-            const res = original() as { priceRange: { minValue: number; maxValue: number } } | null
-            if (!res) return res
-            // Add 5% padding around candle prices only
-            const range = res.priceRange.maxValue - res.priceRange.minValue
-            return {
+          // Return candle-only range regardless of what price lines exist.
+          // original() includes price line prices (stop, TP, etc.) which can be
+          // far from current price and collapse the candles to a single pixel.
+          autoscaleInfoProvider: () =>
+            validCandles.length === 0 ? null : {
               priceRange: {
-                minValue: res.priceRange.minValue - range * 0.05,
-                maxValue: res.priceRange.maxValue + range * 0.05,
+                minValue: candleMin - candleRange * 0.05,
+                maxValue: candleMax + candleRange * 0.05,
               },
-            }
-          },
+            },
         })
 
-        if (candles.length > 0) {
-          const candleData = candles
-            .filter(c => c.open != null && c.high != null && c.low != null && c.close != null)
+        if (validCandles.length > 0) {
+          const candleData = validCandles
             .map(c => ({
               time: Math.floor(new Date(c.ts).getTime() / 1000) as unknown as import('lightweight-charts').Time,
               open:  c.open!,
