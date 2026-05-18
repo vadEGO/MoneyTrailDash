@@ -192,9 +192,21 @@ export interface RvTradeSyncStatus {
   is_stale: boolean | null
 }
 
+export interface SourceDetail {
+  source: string
+  source_url?: string | null
+  author?: string | null
+  score_contrib?: number | null
+  notes?: string | null
+  confirmed_at?: string | null
+}
+
 export interface OpportunityAction {
   state_rank: number | null
   id: string
+  sources: string[] | null
+  confirmed_by_count: number | null
+  source_details: SourceDetail[] | null
   source: string
   source_record_id: string | null
   symbol: string | null

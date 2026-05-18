@@ -72,7 +72,7 @@ export default function IdeasPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-surface-dim border-b border-border">
-                  {['RNK', 'SOURCE', 'IDEA', 'STATE', 'SCORE', 'PRICE', 'ENTRY', 'STOP', 'TP1', 'R/R', 'UPDATED'].map(h => (
+                  {['RNK', 'SOURCES', 'IDEA', 'STATE', 'SCORE', 'PRICE', 'ENTRY', 'STOP', 'TP1', 'R/R', 'UPDATED'].map(h => (
                     <th key={h} className="px-4 py-2.5 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -95,12 +95,28 @@ export default function IdeasPage() {
                       className={`cursor-pointer transition-colors ${
                         isSelected
                           ? 'bg-blue-50 border-l-2 border-l-status-blue'
-                          : 'hover:bg-surface-dim'
+                          : (row.confirmed_by_count ?? 1) > 1
+                            ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-2 border-l-amber-400'
+                            : 'hover:bg-surface-dim'
                       }`}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-ink-3">{String(i + 1).padStart(2, '0')}</td>
                       <td className="px-4 py-3">
-                        <span className="text-2xs font-semibold uppercase tracking-widest text-ink-3">{sourceLabel(row.source)}</span>
+                        {/* Multi-source confirmation badges */}
+                        {row.sources && row.sources.length > 1 ? (
+                          <div className="flex flex-col gap-0.5">
+                            {row.sources.slice(0, 3).map((src, i) => (
+                              <span key={i} className={`text-2xs font-semibold uppercase tracking-widest ${i === 0 ? 'text-ink' : 'text-ink-3'}`}>
+                                {sourceLabel(src)}
+                              </span>
+                            ))}
+                            {(row.confirmed_by_count ?? row.sources.length) > 3 && (
+                              <span className="text-2xs text-ink-3">+{(row.confirmed_by_count ?? row.sources.length) - 3} more</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-2xs font-semibold uppercase tracking-widest text-ink-3">{sourceLabel(row.source)}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 min-w-[260px]">
                         <div className="flex items-center gap-2">

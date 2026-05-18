@@ -383,11 +383,75 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
             </Section>
           )}
 
-          {/* ── Source / meta ─────────────────────────────────────────────── */}
-          <Section title="Source">
+          {/* ── Source confirmation ───────────────────────────────────────── */}
+          <Section title="Sources">
+            {/* Multi-source confirmation badges */}
+            {(idea.sources && idea.sources.length > 0) ? (
+              <div className="mb-3">
+                <div className="text-2xs text-ink-3 uppercase tracking-wider font-semibold mb-2">
+                  Confirmed by {idea.confirmed_by_count ?? idea.sources.length} source{(idea.confirmed_by_count ?? idea.sources.length) > 1 ? 's' : ''}
+                  {(idea.confirmed_by_count ?? 0) > 1 && (
+                    <span className="ml-2 text-status-green font-bold">↑ higher conviction</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {idea.sources.map((src, i) => {
+                    const detail = idea.source_details?.find(d => d.source === src)
+                    return (
+                      <div key={i} className="group relative">
+                        <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-2xs font-semibold border ${
+                          src === idea.source
+                            ? 'bg-black text-white border-black'
+                            : 'bg-surface-dim text-ink border-border'
+                        }`}>
+                          {sourceLabel(src)}
+                          {detail?.score_contrib ? (
+                            <span className="text-status-green">+{detail.score_contrib.toFixed(0)}</span>
+                          ) : null}
+                        </span>
+                        {/* Tooltip on hover */}
+                        {detail?.notes && (
+                          <div className="hidden group-hover:block absolute bottom-full left-0 mb-1 z-10 w-48 bg-black text-white text-2xs rounded p-2 shadow-lg">
+                            {detail.notes}
+                            {detail.confirmed_at && (
+                              <div className="text-ink-3 mt-1">{fmtDate(detail.confirmed_at)}</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* Per-source links */}
+                {idea.source_details?.some(d => d.source_url) && (
+                  <div className="mt-2 space-y-1">
+                    {idea.source_details.filter(d => d.source_url).map((d, i) => (
+                      <a key={i} href={d.source_url!} target="_blank" rel="noopener noreferrer"
+                        className="block text-2xs text-status-blue hover:underline">
+                        {sourceLabel(d.source)}{d.author ? ` — ${d.author}` : ''} →
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Single source fallback */
+              <div className="mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center rounded px-2 py-1 text-2xs font-semibold border bg-surface-dim text-ink border-border">
+                  {sourceLabel(idea.source)}
+                </span>
+                {idea.source_url && (
+                  <a href={idea.source_url} target="_blank" rel="noopener noreferrer"
+                    className="text-2xs text-status-blue hover:underline">
+                    View source →
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Meta row */}
             <div className="grid grid-cols-2 gap-2 text-sm">
               {[
-                { label: 'Source',     value: sourceLabel(idea.source) },
                 { label: 'Lifecycle',  value: idea.lifecycle ?? '—' },
                 { label: 'Discovered', value: idea.discovered_at ? fmtDate(idea.discovered_at) : '—' },
                 { label: 'Updated',    value: idea.updated_at ? fmtDate(idea.updated_at) : '—' },
@@ -399,16 +463,6 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
                 </div>
               ))}
             </div>
-            {idea.source_url && (
-              <a
-                href={idea.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 block text-xs text-status-blue hover:underline"
-              >
-                View source →
-              </a>
-            )}
           </Section>
 
         </div>
