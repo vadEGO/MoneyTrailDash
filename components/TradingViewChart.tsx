@@ -1,7 +1,17 @@
 'use client'
 
-import { useEffect, useRef, memo } from 'react'
+import { useEffect, useRef, useState, memo } from 'react'
 import type { ChartOverlayLevel, MarketCandle } from '@/lib/types'
+
+interface OhlcLegend {
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  change: number
+  changePct: number
+}
 
 interface LevelStyle {
   color: string
@@ -36,6 +46,7 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chartRef = useRef<any>(null)
+  const [legend, setLegend] = useState<OhlcLegend | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -103,17 +114,47 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
             }),
           })
 
-          candleSeries.setData(
-            validCandles
-              .map(c => ({
-                time:  Math.floor(new Date(c.ts).getTime() / 1000) as unknown as import('lightweight-charts').Time,
-                open:  c.open!,
-                high:  c.high!,
-                low:   c.low!,
-                close: c.close!,
-              }))
-              .sort((a, b) => (a.time as number) - (b.time as number))
-          )
+          const candleData = validCandles
+            .map(c => ({
+              time:  Math.floor(new Date(c.ts).getTime() / 1000) as unknown as import('lightweight-charts').Time,
+              open:  c.open!,
+              high:  c.high!,
+              low:   c.low!,
+              close: c.close!,
+            }))
+            .sort((a, b) => (a.time as number) - (b.time as number))
+
+          candleSeries.setData(candleData)
+
+          // Show most-recent candle in legend by default
+          const last = candleData[candleData.length - 1]
+          const prev = candleData[candleData.length - 2]
+          if (last) {
+            setLegend({
+              date:      new Date((last.time as number) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              open:  last.open,  high: last.high,
+              low:   last.low,   close: last.close,
+              change:    prev ? last.close - prev.close : 0,
+              changePct: prev ? ((last.close - prev.close) / prev.close) * 100 : 0,
+            })
+          }
+
+          // Update legend on crosshair move
+          chart.subscribeCrosshairMove((param: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+            if (!param.time || !param.seriesData) { return }
+            const bar = param.seriesData.get(candleSeries)
+            if (!bar) return
+            const time = param.time as number
+            const idx = candleData.findIndex(d => (d.time as number) === time)
+            const p = idx > 0 ? candleData[idx - 1] : null
+            setLegend({
+              date:      new Date(time * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              open:  bar.open,  high: bar.high,
+              low:   bar.low,   close: bar.close,
+              change:    p ? bar.close - p.close : 0,
+              changePct: p ? ((bar.close - p.close) / p.close) * 100 : 0,
+            })
+          })
 
           // Draw all level lines — they appear on axis but don't affect zoom.
           for (const level of levels) {
@@ -221,6 +262,21 @@ function TradingViewChart({ candles, levels, symbol, height = 380 }: Props) {
   return (
     <div className="relative w-full">
       <div ref={containerRef} style={{ height }} className="w-full" />
+
+      {/* OHLC hover legend — top-left, updates with crosshair */}
+      {legend && (
+        <div className="absolute top-2 left-2 pointer-events-none flex items-baseline gap-3 bg-white/90 border border-border rounded px-2.5 py-1.5 text-2xs font-mono">
+          <span className="text-ink-3">{legend.date}</span>
+          <span className="text-ink-3">O <span className="text-ink">{fmtPrice(legend.open)}</span></span>
+          <span className="text-ink-3">H <span className="text-status-green">{fmtPrice(legend.high)}</span></span>
+          <span className="text-ink-3">L <span className="text-status-red">{fmtPrice(legend.low)}</span></span>
+          <span className="text-ink-3">C <span className="text-ink font-semibold">{fmtPrice(legend.close)}</span></span>
+          <span className={legend.change >= 0 ? 'text-status-green' : 'text-status-red'}>
+            {legend.change >= 0 ? '+' : ''}{fmtPrice(Math.abs(legend.change))} ({legend.change >= 0 ? '+' : ''}{legend.changePct.toFixed(2)}%)
+          </span>
+        </div>
+      )}
+
       {candles.length === 0 && levels.length > 0 && (
         <div className="absolute top-2 left-2 text-2xs font-mono text-ink-3 bg-white/80 rounded px-2 py-0.5 border border-border pointer-events-none">
           Levels only — no candles synced for {symbol}
