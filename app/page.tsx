@@ -35,41 +35,76 @@ export default async function CockpitPage() {
 
       <SentimentAlerts />
 
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
         <Metric label="Claims" value={summary?.claim_count ?? 0} />
         <Metric label="Insights" value={summary?.insight_count ?? 0} />
         <Metric label="Council Runs" value={summary?.council_run_count ?? 0} />
         <Metric label="LLM Fallback" value={fallbackRate} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 space-y-4">
+      {/* Single-column on mobile, 3-col on lg+ */}
+      <div className="space-y-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
+
+        {/* Main column — takes 2/3 on desktop */}
+        <div className="lg:col-span-2 space-y-4">
+
+          {/* Opportunities — card list on mobile, table on md+ */}
           <Card title="Top Opportunities" action={<Link href="/watchlist" className="text-2xs text-ink-3 hover:text-ink">VIEW ALL →</Link>}>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-surface-dim border-b border-border">
-                  {['RANK', 'THEME', 'STATUS', 'FIT', 'NEXT STEP'].map(h => (
-                    <th key={h} className="px-4 py-2 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {opportunities.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-8 text-sm text-ink-3 text-center">No opportunities synced yet</td></tr>
-                ) : opportunities.map(row => (
-                  <tr key={row.opportunity_id} className="hover:bg-surface-dim">
-                    <td className="px-4 py-3 font-mono text-xs text-ink-3">{String(row.rank).padStart(2, '0')}</td>
-                    <td className="px-4 py-3">
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-border">
+              {opportunities.length === 0 ? (
+                <div className="px-4 py-8 text-sm text-ink-3 text-center">No opportunities synced yet</div>
+              ) : opportunities.map(row => (
+                <div key={row.opportunity_id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="font-mono text-2xs text-ink-3">{String(row.rank).padStart(2, '0')}</span>
+                        <StatusChip label={row.status ?? 'watch'} variant={statusVariant(row.status)} />
+                      </div>
                       <div className="text-sm font-semibold text-ink">{row.title}</div>
-                      <div className="text-2xs text-ink-3 mt-0.5 line-clamp-1">{row.why_now}</div>
-                    </td>
-                    <td className="px-4 py-3"><StatusChip label={row.status ?? 'watch'} variant={statusVariant(row.status)} /></td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">{pct(row.portfolio_fit_score_public)}</td>
-                    <td className="px-4 py-3 text-xs text-ink-2 max-w-[260px] truncate">{row.next_step ?? 'Investigate'}</td>
+                      {row.why_now && <div className="text-2xs text-ink-3 mt-0.5 line-clamp-1">{row.why_now}</div>}
+                    </div>
+                    <span className="font-mono text-xs text-ink shrink-0">{pct(row.portfolio_fit_score_public)}</span>
+                  </div>
+                  {row.next_step && (
+                    <div className="mt-1.5 text-2xs text-ink-3 bg-surface-dim rounded px-2 py-1 truncate">
+                      → {row.next_step}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-surface-dim border-b border-border">
+                    {['RANK', 'THEME', 'STATUS', 'FIT', 'NEXT STEP'].map(h => (
+                      <th key={h} className="px-4 py-2 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {opportunities.length === 0 ? (
+                    <tr><td colSpan={5} className="px-4 py-8 text-sm text-ink-3 text-center">No opportunities synced yet</td></tr>
+                  ) : opportunities.map(row => (
+                    <tr key={row.opportunity_id} className="hover:bg-surface-dim">
+                      <td className="px-4 py-3 font-mono text-xs text-ink-3">{String(row.rank).padStart(2, '0')}</td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-semibold text-ink">{row.title}</div>
+                        <div className="text-2xs text-ink-3 mt-0.5 line-clamp-1">{row.why_now}</div>
+                      </td>
+                      <td className="px-4 py-3"><StatusChip label={row.status ?? 'watch'} variant={statusVariant(row.status)} /></td>
+                      <td className="px-4 py-3 font-mono text-xs text-ink">{pct(row.portfolio_fit_score_public)}</td>
+                      <td className="px-4 py-3 text-xs text-ink-2 max-w-[260px] truncate">{row.next_step ?? 'Investigate'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
 
           <Card title="Latest Council Conclusions" action={<Link href="/council" className="text-2xs text-ink-3 hover:text-ink">COUNCIL →</Link>}>
@@ -78,7 +113,7 @@ export default async function CockpitPage() {
                 <div className="px-4 py-8 text-sm text-ink-3">No council runs synced yet</div>
               ) : councilRuns.slice(0, 4).map(run => (
                 <div key={run.id} className="px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="text-sm font-semibold text-ink">{run.topic}</div>
                     <StatusChip label={run.decision_state ?? 'research'} variant={statusVariant(run.decision_state)} />
                   </div>
@@ -89,6 +124,7 @@ export default async function CockpitPage() {
           </Card>
         </div>
 
+        {/* Sidebar — full width on mobile, 1/3 on desktop */}
         <div className="space-y-4">
           <Card title="Market Sentiment">
             <div className="p-3">
@@ -104,7 +140,7 @@ export default async function CockpitPage() {
                 <div key={thesis.id} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm text-ink line-clamp-1">{thesis.topic}</span>
-                    <span className="font-mono text-xs text-ink">{pct(thesis.confidence)}</span>
+                    <span className="font-mono text-xs text-ink shrink-0">{pct(thesis.confidence)}</span>
                   </div>
                   <div className="text-2xs text-ink-3 mt-1">{thesis.confidence_movement ?? 'new'} · {thesis.status ?? 'research'}</div>
                 </div>
@@ -129,6 +165,7 @@ export default async function CockpitPage() {
             </div>
           </Card>
         </div>
+
       </div>
     </div>
   )
