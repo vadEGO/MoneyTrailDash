@@ -41,14 +41,21 @@ export default function IdeasPage() {
 
   const filteredIdeas = activeFilters.size === 0
     ? ideas
-    : ideas.filter(row => {
-        const rowSources = row.sources?.length ? row.sources : [row.source]
-        return rowSources.some(s => activeFilters.has(sourceLabel(s)))
-      })
+    : ideas.filter(row => rowSourceList(row).some(s => activeFilters.has(sourceLabel(s))))
 
+  // source may be a semicolon-delimited string "realvision;situational_awareness_13f"
+  // when migration 004 sources[] isn't populated yet. Split and dedupe per idea.
   const sourceCounts = ideas.reduce<Record<string, number>>((acc, row) => {
-    const s = sourceLabel(row.source)
-    acc[s] = (acc[s] ?? 0) + 1
+    const rowSources = rowSourceList(row)
+    // Count each unique source once per idea (not once per mention)
+    const seen = new Set<string>()
+    for (const s of rowSources) {
+      const label = sourceLabel(s)
+      if (!seen.has(label)) {
+        seen.add(label)
+        acc[label] = (acc[label] ?? 0) + 1
+      }
+    }
     return acc
   }, {})
   const ready   = ideas.filter(r => r.action_state === 'ready').length
@@ -126,7 +133,7 @@ export default function IdeasPage() {
                 ? (row.entry_min + row.entry_max) / 2 : row.entry_min)
               const rrVal = rrRatio(entryMid, row.stop_loss, row.take_profit_1)
               const isSelected = selected?.id === row.id
-              const isMulti = (row.confirmed_by_count ?? 1) > 1
+              const isMulti = rowSourceList(row).length > 1
 
               return (
                 <div
@@ -192,9 +199,7 @@ export default function IdeasPage() {
                         </span>
                       )}
                       <span className="text-2xs text-ink-3 uppercase tracking-wide">
-                        {row.sources && row.sources.length > 1
-                          ? row.sources.slice(0, 2).map(sourceLabel).join(' · ')
-                          : sourceLabel(row.source)}
+                        {rowSourceList(row).slice(0, 2).map(sourceLabel).join(' · ') || '—'}
                       </span>
                     </div>
                     <span className="text-2xs text-ink-3 shrink-0">{formatAge(row.updated_at)}</span>
@@ -241,20 +246,23 @@ export default function IdeasPage() {
                     >
                       <td className="px-4 py-3 font-mono text-xs text-ink-3">{String(i + 1).padStart(2, '0')}</td>
                       <td className="px-4 py-3">
-                        {row.sources && row.sources.length > 1 ? (
-                          <div className="flex flex-col gap-0.5">
-                            {row.sources.slice(0, 3).map((src, i) => (
-                              <span key={i} className={`text-2xs font-semibold uppercase tracking-widest ${i === 0 ? 'text-ink' : 'text-ink-3'}`}>
-                                {sourceLabel(src)}
-                              </span>
-                            ))}
-                            {(row.confirmed_by_count ?? row.sources.length) > 3 && (
-                              <span className="text-2xs text-ink-3">+{(row.confirmed_by_count ?? row.sources.length) - 3} more</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-2xs font-semibold uppercase tracking-widest text-ink-3">{sourceLabel(row.source)}</span>
-                        )}
+                        {(() => {
+                          const srcs = rowSourceList(row)
+                          return srcs.length > 1 ? (
+                            <div className="flex flex-col gap-0.5">
+                              {srcs.slice(0, 3).map((src, i) => (
+                                <span key={i} className={`text-2xs font-semibold uppercase tracking-widest ${i === 0 ? 'text-ink' : 'text-ink-3'}`}>
+                                  {sourceLabel(src)}
+                                </span>
+                              ))}
+                              {srcs.length > 3 && (
+                                <span className="text-2xs text-ink-3">+{srcs.length - 3} more</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-2xs font-semibold uppercase tracking-widest text-ink-3">{sourceLabel(srcs[0])}</span>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 py-3 min-w-[260px]">
                         <div className="flex items-center gap-2">
@@ -345,10 +353,23 @@ function Score({ value }: { value?: number | null }) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+// Returns the canonical list of sources for a row.
+// Handles: sources[] array (migration 004), semicolon-delimited source string,
+// and plain single source string.
+function rowSourceList(row: { source: string; sources?: string[] | null }): string[] {
+  if (row.sources && row.sources.length > 0) return row.sources
+  if (!row.source) return []
+  // semicolon-delimited fallback: "realvision;situational_awareness_13f"
+  return row.source.split(';').map(s => s.trim()).filter(Boolean)
+}
+
 function sourceLabel(source?: string | null) {
   if (!source) return 'Unknown'
-  if (source.toLowerCase() === 'realvision') return 'RealVision'
-  return source.replace(/[_-]/g, ' ')
+  const s = source.toLowerCase().trim()
+  if (s === 'realvision') return 'RealVision'
+  if (s === 'sec_13f' || s.endsWith('_13f')) return '13F'
+  // Title-case slug: situational_awareness_13f → Situational Awareness 13F
+  return source.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 function stateLabel(state?: string | null) {
