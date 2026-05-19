@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import type { OpportunityAction, OpportunityEngineEvent } from '@/lib/types'
 import PageHeader from '@/components/ui/PageHeader'
@@ -9,12 +9,50 @@ import StatusChip from '@/components/ui/StatusChip'
 import IdeaDrawer from '@/components/IdeaDrawer'
 import { formatAge } from '@/lib/fmt'
 
+// ── Thesis category inference ─────────────────────────────────────────────
+// Inferred client-side from title + thesis text + symbol. No DB change needed.
+
+const CATEGORY_RULES: Array<{ label: string; color: string; keywords: string[] }> = [
+  { label: 'AI',       color: '#7c3aed', keywords: ['ai', 'artificial intelligence', 'coreweave', 'nvidia', 'machine learning', 'gpu', 'data center', 'llm'] },
+  { label: 'Energy',   color: '#d97706', keywords: ['energy', 'oil', 'gas', 'power', 'electric', 'eqt', 'bloom energy', 'solar', 'wind', 'nuclear', 'utilities', 'nee'] },
+  { label: 'Crypto',   color: '#f59e0b', keywords: ['bitcoin', 'btc', 'ethereum', 'eth', 'sol', 'solana', 'crypto', 'defi', 'blockchain', 'mining', 'hype', 'hyperliquid'] },
+  { label: 'Mining',   color: '#6b7280', keywords: ['mining', 'core scientific', 'riot platforms', 'hut 8', 'bitfarms', 'cleanspark', 'bitdeer', 'iren'] },
+  { label: 'Semi',     color: '#2563eb', keywords: ['semiconductor', 'tsm', 'taiwan', 'broadcom', 'intel', 'micron', 'sandisk', 'lumentum', 'coherent', 'tower semi'] },
+  { label: 'Infra',    color: '#059669', keywords: ['infrastructure', 'applied digital', 'apld', 'solaris', 'data infrastructure', 'server'] },
+  { label: 'Tech',     color: '#0891b2', keywords: ['software', 'cloud', 'saas', 'oracle', 'orcl', 'infosys', 'tech'] },
+]
+
+function inferCategory(row: OpportunityAction): string {
+  const haystack = [row.title, row.thesis, row.normalized_symbol, row.symbol]
+    .filter(Boolean).join(' ').toLowerCase()
+  for (const rule of CATEGORY_RULES) {
+    if (rule.keywords.some(kw => haystack.includes(kw))) return rule.label
+  }
+  return row.asset_class === 'crypto' ? 'Crypto' : 'Other'
+}
+
+// ── Filter state ────────────────────────────────────────────────────────────
+
+interface Filters {
+  categories: Set<string>
+  minScore:   number        // 0–100
+  minRR:      number        // 0.0–10.0
+}
+
+const DEFAULT_FILTERS: Filters = { categories: new Set(), minScore: 0, minRR: 0 }
+
+function filtersActive(f: Filters) {
+  return f.categories.size > 0 || f.minScore > 0 || f.minRR > 0
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────
+
 export default function IdeasPage() {
-  const [ideas, setIdeas]         = useState<OpportunityAction[]>([])
-  const [events, setEvents]       = useState<OpportunityEngineEvent[]>([])
-  const [selected, setSelected]   = useState<OpportunityAction | null>(null)
-  const [loading, setLoading]     = useState(true)
-  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
+  const [ideas, setIdeas]       = useState<OpportunityAction[]>([])
+  const [events, setEvents]     = useState<OpportunityEngineEvent[]>([])
+  const [selected, setSelected] = useState<OpportunityAction | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const [filters, setFilters]   = useState<Filters>(DEFAULT_FILTERS)
 
   useEffect(() => {
     const supabase = createClient()
@@ -30,44 +68,49 @@ export default function IdeasPage() {
 
   const closeDrawer = useCallback(() => setSelected(null), [])
 
-  const toggleFilter = useCallback((source: string) => {
-    setActiveFilters(prev => {
-      const next = new Set(prev)
-      if (next.has(source)) next.delete(source)
-      else next.add(source)
-      return next
+  const toggleCategory = useCallback((cat: string) => {
+    setFilters(prev => {
+      const next = new Set(prev.categories)
+      next.has(cat) ? next.delete(cat) : next.add(cat)
+      return { ...prev, categories: next }
     })
   }, [])
 
-  const filteredIdeas = activeFilters.size === 0
-    ? ideas
-    : ideas.filter(row => rowSourceList(row).some(s => activeFilters.has(sourceLabel(s))))
+  // Compute per-row R/R for filtering
+  const ideasWithRR = useMemo(() => ideas.map(row => {
+    const entryMid = row.ideal_entry ?? ((row.entry_min && row.entry_max)
+      ? (row.entry_min + row.entry_max) / 2 : row.entry_min)
+    return { row, rr: rrRatioNum(entryMid, row.stop_loss, row.take_profit_1) }
+  }), [ideas])
 
-  // source may be a semicolon-delimited string "realvision;situational_awareness_13f"
-  // when migration 004 sources[] isn't populated yet. Split and dedupe per idea.
-  const sourceCounts = ideas.reduce<Record<string, number>>((acc, row) => {
-    const rowSources = rowSourceList(row)
-    // Count each unique source once per idea (not once per mention)
-    const seen = new Set<string>()
-    for (const s of rowSources) {
-      const label = sourceLabel(s)
-      if (!seen.has(label)) {
-        seen.add(label)
-        acc[label] = (acc[label] ?? 0) + 1
-      }
-    }
+  const ideasWithMeta = useMemo(() => ideasWithRR.map(({ row, rr }) => ({
+    row, rr, category: inferCategory(row),
+  })), [ideasWithRR])
+
+  const filteredIdeas = useMemo(() => ideasWithMeta.filter(({ row, rr, category }) => {
+    if (filters.categories.size > 0 && !filters.categories.has(category)) return false
+    if (filters.minScore > 0 && (row.total_score ?? 0) < filters.minScore) return false
+    if (filters.minRR > 0 && (rr ?? 0) < filters.minRR) return false
+    return true
+  }), [ideasWithMeta, filters])
+
+  // Category counts for pills — only show categories that exist in the data
+  const categoryCounts = useMemo(() => ideasWithMeta.reduce<Record<string, number>>((acc, { category }) => {
+    acc[category] = (acc[category] ?? 0) + 1
     return acc
-  }, {})
+  }, {}), [ideasWithMeta])
+
   const ready   = ideas.filter(r => r.action_state === 'ready').length
   const waiting = ideas.filter(r => r.action_state === 'wait_for_entry').length
   const risk    = ideas.filter(r => ['chasing_risk', 'invalidated'].includes(r.action_state)).length
+  const active  = filtersActive(filters)
 
   return (
     <>
       <div className="space-y-4">
         <PageHeader
           title="Ideas"
-          subtitle="Multi-source trade idea feed. Click any row to see the chart, levels, thesis, and score breakdown."
+          subtitle="Multi-source trade idea feed. Tap any row to see chart, levels, thesis, and score breakdown."
           action={<span className="text-2xs font-mono text-ink-3 border border-border rounded px-2 py-1">RESEARCH ONLY</span>}
         />
 
@@ -79,73 +122,95 @@ export default function IdeasPage() {
         </div>
 
         <Card
-          title="Source Filter"
-          action={activeFilters.size > 0 ? (
-            <button
-              onClick={() => setActiveFilters(new Set())}
-              className="text-2xs text-ink-3 hover:text-ink underline"
-            >
-              clear
-            </button>
-          ) : undefined}
-        >
-          <div className="px-4 py-3 flex flex-wrap gap-2">
-            {Object.keys(sourceCounts).length === 0 ? (
-              <span className="text-sm text-ink-3">{loading ? 'Loading…' : 'No sources synced yet'}</span>
-            ) : Object.entries(sourceCounts).map(([source, count]) => {
-              const active = activeFilters.has(source)
-              return (
+          title="Idea Feed"
+          action={
+            <div className="flex items-center gap-3">
+              {active && (
                 <button
-                  key={source}
-                  onClick={() => toggleFilter(source)}
-                  className={`inline-flex items-center gap-2 rounded-sm border px-2 py-1 transition-colors ${
-                    active
-                      ? 'border-black bg-black text-white'
-                      : 'border-border bg-surface-dim hover:border-ink-3'
-                  }`}
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="text-2xs text-ink-3 hover:text-ink underline"
                 >
-                  <span className={`text-2xs font-semibold uppercase tracking-widest ${active ? 'text-white' : 'text-ink-3'}`}>
-                    {source}
-                  </span>
-                  <span className={`font-mono text-xs ${active ? 'text-white/70' : 'text-ink'}`}>{count}</span>
+                  clear filters
                 </button>
-              )
-            })}
-          </div>
-          {activeFilters.size > 0 && (
-            <div className="px-4 pb-2 text-2xs text-ink-3">
-              Showing {filteredIdeas.length} of {ideas.length} ideas
+              )}
+              <span className="text-2xs font-mono text-ink-3">
+                {active ? `${filteredIdeas.length} of ${ideas.length}` : `${ideas.length} ideas`}
+              </span>
             </div>
-          )}
-        </Card>
+          }
+        >
+          {/* ── Filter bar ─────────────────────────────────────────────────── */}
+          <div className="px-4 pt-3 pb-4 border-b border-border space-y-3">
 
-        <Card title="Idea Feed — tap any item for chart & detail">
-          {/* ── Mobile card list (hidden on md+) ── */}
+            {/* Category pills */}
+            {Object.keys(categoryCounts).length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-2xs font-semibold text-ink-3 uppercase tracking-wider shrink-0">Theme</span>
+                {CATEGORY_RULES
+                  .filter(r => categoryCounts[r.label])
+                  .concat(categoryCounts['Other'] ? [{ label: 'Other', color: '#9ca3af', keywords: [] }] : [])
+                  .map(rule => {
+                    const on    = filters.categories.has(rule.label)
+                    const count = categoryCounts[rule.label] ?? 0
+                    return (
+                      <button
+                        key={rule.label}
+                        onClick={() => toggleCategory(rule.label)}
+                        style={on ? { backgroundColor: rule.color, borderColor: rule.color } : {}}
+                        className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-2xs font-semibold transition-all ${
+                          on ? 'text-white' : 'border-border bg-surface-dim text-ink-3 hover:border-ink-3'
+                        }`}
+                      >
+                        {rule.label}
+                        <span className={`font-mono text-2xs ${on ? 'text-white/60' : 'text-ink'}`}>{count}</span>
+                      </button>
+                    )
+                  })}
+              </div>
+            )}
+
+            {/* Score + R/R sliders */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <SliderFilter
+                label="Min Score"
+                value={filters.minScore}
+                min={0} max={100} step={5}
+                display={v => v === 0 ? 'Any' : `${v}+`}
+                color={filters.minScore >= 70 ? '#059669' : filters.minScore >= 50 ? '#d97706' : '#6b7280'}
+                onChange={v => setFilters(p => ({ ...p, minScore: v }))}
+              />
+              <SliderFilter
+                label="Min R/R"
+                value={filters.minRR}
+                min={0} max={10} step={0.5}
+                display={v => v === 0 ? 'Any' : `${v}x+`}
+                color={filters.minRR >= 3 ? '#059669' : filters.minRR >= 1.5 ? '#d97706' : '#6b7280'}
+                onChange={v => setFilters(p => ({ ...p, minRR: v }))}
+              />
+            </div>
+          </div>
+
+          {/* ── Mobile card list ────────────────────────────────────────────── */}
           <div className="md:hidden divide-y divide-border">
             {loading ? (
               <div className="px-4 py-12 text-center text-sm text-ink-3">Loading ideas…</div>
             ) : filteredIdeas.length === 0 ? (
               <div className="px-4 py-12 text-center text-sm text-ink-3">
-                {ideas.length === 0 ? 'No ideas synced yet' : 'No ideas match the selected sources'}
+                {ideas.length === 0 ? 'No ideas synced yet' : 'No ideas match — try adjusting the filters'}
               </div>
-            ) : filteredIdeas.map((row, i) => {
-              const entryMid = row.ideal_entry ?? ((row.entry_min && row.entry_max)
-                ? (row.entry_min + row.entry_max) / 2 : row.entry_min)
-              const rrVal = rrRatio(entryMid, row.stop_loss, row.take_profit_1)
+            ) : filteredIdeas.map(({ row, rr }, i) => {
               const isSelected = selected?.id === row.id
-              const isMulti = rowSourceList(row).length > 1
-
+              const isMulti    = rowSourceList(row).length > 1
               return (
                 <div
                   key={row.id}
                   onClick={() => setSelected(row)}
                   className={`px-4 py-3 cursor-pointer transition-colors active:bg-surface-dim ${
-                    isSelected   ? 'bg-blue-50 border-l-4 border-l-status-blue' :
-                    isMulti      ? 'bg-amber-50/40 border-l-4 border-l-amber-400' :
+                    isSelected ? 'bg-blue-50 border-l-4 border-l-status-blue' :
+                    isMulti    ? 'bg-amber-50/40 border-l-4 border-l-amber-400' :
                     'hover:bg-surface-dim'
                   }`}
                 >
-                  {/* Row 1: rank · symbol · direction · state */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-mono text-2xs text-ink-3 shrink-0">{String(i + 1).padStart(2, '0')}</span>
@@ -159,45 +224,27 @@ export default function IdeasPage() {
                     </div>
                     <StatusChip label={stateLabel(row.action_state)} variant={stateVariant(row.action_state)} />
                   </div>
-
-                  {/* Row 2: price levels */}
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                     {row.current_price != null && (
-                      <span className="text-2xs font-mono text-ink-3">
-                        Price <span className="text-ink">{money(row.current_price)}</span>
-                      </span>
+                      <span className="text-2xs font-mono text-ink-3">Price <span className="text-ink">{money(row.current_price)}</span></span>
                     )}
                     {(row.entry_min || row.ideal_entry) && (
-                      <span className="text-2xs font-mono text-ink-3">
-                        Entry <span className="text-ink">{entryRange(row.entry_min, row.entry_max, row.ideal_entry)}</span>
-                      </span>
+                      <span className="text-2xs font-mono text-ink-3">Entry <span className="text-ink">{entryRange(row.entry_min, row.entry_max, row.ideal_entry)}</span></span>
                     )}
                     {row.stop_loss != null && (
-                      <span className="text-2xs font-mono text-ink-3">
-                        Stop <span className="text-status-red">{money(row.stop_loss)}</span>
-                      </span>
+                      <span className="text-2xs font-mono text-ink-3">Stop <span className="text-status-red">{money(row.stop_loss)}</span></span>
                     )}
                     {row.take_profit_1 != null && (
-                      <span className="text-2xs font-mono text-ink-3">
-                        TP1 <span className="text-status-green">{money(row.take_profit_1)}</span>
-                      </span>
+                      <span className="text-2xs font-mono text-ink-3">TP1 <span className="text-status-green">{money(row.take_profit_1)}</span></span>
                     )}
-                    {rrVal && (
-                      <span className="text-2xs font-mono text-ink-3">
-                        R/R <span className="text-ink">{rrVal}x</span>
-                      </span>
+                    {rr != null && (
+                      <span className="text-2xs font-mono text-ink-3">R/R <span className="text-ink">{rr.toFixed(1)}x</span></span>
                     )}
                   </div>
-
-                  {/* Row 3: score · sources · age */}
                   <div className="mt-1.5 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Score value={row.total_score} />
-                      {isMulti && (
-                        <span className="text-2xs font-semibold text-amber-600">
-                          {row.confirmed_by_count}× confirmed
-                        </span>
-                      )}
+                      {isMulti && <span className="text-2xs font-semibold text-amber-600">{rowSourceList(row).length}× sources</span>}
                       <span className="text-2xs text-ink-3 uppercase tracking-wide">
                         {rowSourceList(row).slice(0, 2).map(sourceLabel).join(' · ') || '—'}
                       </span>
@@ -209,7 +256,7 @@ export default function IdeasPage() {
             })}
           </div>
 
-          {/* ── Desktop table (hidden below md) ── */}
+          {/* ── Desktop table ─────────────────────────────────────────────── */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -224,24 +271,19 @@ export default function IdeasPage() {
                   <tr><td colSpan={11} className="px-4 py-12 text-center text-sm text-ink-3">Loading ideas…</td></tr>
                 ) : filteredIdeas.length === 0 ? (
                   <tr><td colSpan={11} className="px-4 py-12 text-center text-sm text-ink-3">
-                    {ideas.length === 0 ? 'No ideas synced yet' : 'No ideas match the selected sources'}
+                    {ideas.length === 0 ? 'No ideas synced yet' : 'No ideas match — try adjusting the filters'}
                   </td></tr>
-                ) : filteredIdeas.map((row, i) => {
-                  const entryMid = row.ideal_entry ?? ((row.entry_min && row.entry_max)
-                    ? (row.entry_min + row.entry_max) / 2 : row.entry_min)
-                  const rrVal = rrRatio(entryMid, row.stop_loss, row.take_profit_1)
+                ) : filteredIdeas.map(({ row, rr }, i) => {
                   const isSelected = selected?.id === row.id
-
+                  const isMulti    = rowSourceList(row).length > 1
                   return (
                     <tr
                       key={row.id}
                       onClick={() => setSelected(row)}
                       className={`cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'bg-blue-50 border-l-2 border-l-status-blue'
-                          : (row.confirmed_by_count ?? 1) > 1
-                            ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-2 border-l-amber-400'
-                            : 'hover:bg-surface-dim'
+                        isSelected ? 'bg-blue-50 border-l-2 border-l-status-blue' :
+                        isMulti    ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-2 border-l-amber-400' :
+                        'hover:bg-surface-dim'
                       }`}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-ink-3">{String(i + 1).padStart(2, '0')}</td>
@@ -250,14 +292,12 @@ export default function IdeasPage() {
                           const srcs = rowSourceList(row)
                           return srcs.length > 1 ? (
                             <div className="flex flex-col gap-0.5">
-                              {srcs.slice(0, 3).map((src, i) => (
-                                <span key={i} className={`text-2xs font-semibold uppercase tracking-widest ${i === 0 ? 'text-ink' : 'text-ink-3'}`}>
+                              {srcs.slice(0, 3).map((src, j) => (
+                                <span key={j} className={`text-2xs font-semibold uppercase tracking-widest ${j === 0 ? 'text-ink' : 'text-ink-3'}`}>
                                   {sourceLabel(src)}
                                 </span>
                               ))}
-                              {srcs.length > 3 && (
-                                <span className="text-2xs text-ink-3">+{srcs.length - 3} more</span>
-                              )}
+                              {srcs.length > 3 && <span className="text-2xs text-ink-3">+{srcs.length - 3} more</span>}
                             </div>
                           ) : (
                             <span className="text-2xs font-semibold uppercase tracking-widest text-ink-3">{sourceLabel(srcs[0])}</span>
@@ -275,9 +315,7 @@ export default function IdeasPage() {
                           {row.asset_class && <span className="text-2xs text-ink-3 uppercase">{row.asset_class}</span>}
                         </div>
                         <div className="text-sm font-medium text-ink mt-0.5 line-clamp-1">{row.title}</div>
-                        {row.why_now && (
-                          <div className="text-2xs text-ink-3 mt-0.5 line-clamp-1">{row.why_now}</div>
-                        )}
+                        {row.why_now && <div className="text-2xs text-ink-3 mt-0.5 line-clamp-1">{row.why_now}</div>}
                       </td>
                       <td className="px-4 py-3">
                         <StatusChip label={stateLabel(row.action_state)} variant={stateVariant(row.action_state)} />
@@ -287,7 +325,7 @@ export default function IdeasPage() {
                       <td className="px-4 py-3 font-mono text-xs text-ink">{entryRange(row.entry_min, row.entry_max, row.ideal_entry)}</td>
                       <td className="px-4 py-3 font-mono text-xs text-status-red">{money(row.stop_loss)}</td>
                       <td className="px-4 py-3 font-mono text-xs text-status-green">{money(row.take_profit_1)}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-ink">{rrVal ? `${rrVal}x` : '—'}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-ink">{rr != null ? `${rr.toFixed(1)}x` : '—'}</td>
                       <td className="px-4 py-3 text-xs text-ink-3 whitespace-nowrap">{formatAge(row.updated_at)}</td>
                     </tr>
                   )
@@ -318,13 +356,71 @@ export default function IdeasPage() {
         </Card>
       </div>
 
-      {/* Slide-over drawer — mounts outside the scrollable page */}
       <IdeaDrawer idea={selected} onClose={closeDrawer} />
     </>
   )
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+// ── SliderFilter ────────────────────────────────────────────────────────────
+
+function SliderFilter({
+  label, value, min, max, step, display, color, onChange,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  step: number
+  display: (v: number) => string
+  color: string
+  onChange: (v: number) => void
+}) {
+  const pct = ((value - min) / (max - min)) * 100
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-2xs font-semibold text-ink-3 uppercase tracking-wider">{label}</span>
+        <span className="text-2xs font-mono font-semibold" style={{ color: value > min ? color : undefined }}>
+          {display(value)}
+        </span>
+      </div>
+      <div className="relative h-5 flex items-center">
+        {/* Track */}
+        <div className="absolute inset-x-0 h-1 rounded-full bg-surface-dim overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${pct}%`, backgroundColor: value > min ? color : '#e5e0e1' }}
+          />
+        </div>
+        {/* Input */}
+        <input
+          type="range"
+          min={min} max={max} step={step}
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className="relative w-full h-1 appearance-none bg-transparent cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+            [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-border
+            [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer
+            [&::-webkit-slider-thumb]:transition-colors
+            [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+            [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white
+            [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-border
+            [&::-moz-range-thumb]:cursor-pointer"
+        />
+      </div>
+      {/* Tick marks: min and max labels */}
+      <div className="flex justify-between">
+        <span className="text-2xs text-ink-3 font-mono">{display(min)}</span>
+        <span className="text-2xs text-ink-3 font-mono">{display(max)}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Sub-components ──────────────────────────────────────────────────────────
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
@@ -351,15 +447,11 @@ function Score({ value }: { value?: number | null }) {
   )
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
-// Returns the canonical list of sources for a row.
-// Handles: sources[] array (migration 004), semicolon-delimited source string,
-// and plain single source string.
 function rowSourceList(row: { source: string; sources?: string[] | null }): string[] {
   if (row.sources && row.sources.length > 0) return row.sources
   if (!row.source) return []
-  // semicolon-delimited fallback: "realvision;situational_awareness_13f"
   return row.source.split(';').map(s => s.trim()).filter(Boolean)
 }
 
@@ -368,7 +460,6 @@ function sourceLabel(source?: string | null) {
   const s = source.toLowerCase().trim()
   if (s === 'realvision') return 'RealVision'
   if (s === 'sec_13f' || s.endsWith('_13f')) return '13F'
-  // Title-case slug: situational_awareness_13f → Situational Awareness 13F
   return source.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
@@ -404,10 +495,10 @@ function entryRange(min?: number | null, max?: number | null, fallback?: number 
   return money(fallback)
 }
 
-function rrRatio(entry?: number | null, stop?: number | null, tp?: number | null): string | null {
+function rrRatioNum(entry?: number | null, stop?: number | null, tp?: number | null): number | null {
   if (!entry || !stop || !tp) return null
   const risk   = Math.abs(entry - stop)
   const reward = Math.abs(tp - entry)
   if (risk === 0) return null
-  return (reward / risk).toFixed(1)
+  return reward / risk
 }
