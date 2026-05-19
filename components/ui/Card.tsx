@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 interface CardProps {
   children: ReactNode
   className?: string
-  title?: string
+  title?: ReactNode
   action?: ReactNode
 }
 

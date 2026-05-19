@@ -51,8 +51,9 @@ export default function IdeasPage() {
   const [ideas, setIdeas]       = useState<OpportunityAction[]>([])
   const [events, setEvents]     = useState<OpportunityEngineEvent[]>([])
   const [selected, setSelected] = useState<OpportunityAction | null>(null)
-  const [loading, setLoading]   = useState(true)
-  const [filters, setFilters]   = useState<Filters>(DEFAULT_FILTERS)
+  const [loading, setLoading]     = useState(true)
+  const [filters, setFilters]     = useState<Filters>(DEFAULT_FILTERS)
+  const [filtersOpen, setFiltersOpen] = useState(true)
 
   useEffect(() => {
     const supabase = createClient()
@@ -122,7 +123,34 @@ export default function IdeasPage() {
         </div>
 
         <Card
-          title="Idea Feed"
+          title={
+            <button
+              onClick={() => setFiltersOpen(o => !o)}
+              className="flex items-center gap-2 group"
+            >
+              <span>Idea Feed</span>
+              {/* Active filter badges — visible when collapsed */}
+              {!filtersOpen && active && (
+                <span className="flex items-center gap-1">
+                  {filters.categories.size > 0 && Array.from(filters.categories).map(c => (
+                    <span key={c} className="rounded-sm bg-black px-1.5 py-0.5 text-2xs font-semibold text-white">{c}</span>
+                  ))}
+                  {filters.minScore > 0 && (
+                    <span className="rounded-sm bg-surface border border-border px-1.5 py-0.5 text-2xs font-mono text-ink">{filters.minScore}+</span>
+                  )}
+                  {filters.minRR > 0 && (
+                    <span className="rounded-sm bg-surface border border-border px-1.5 py-0.5 text-2xs font-mono text-ink">{filters.minRR}x+</span>
+                  )}
+                </span>
+              )}
+              <svg
+                width="12" height="12" viewBox="0 0 12 12" fill="none"
+                className={`text-ink-3 transition-transform duration-200 ${filtersOpen ? 'rotate-180' : ''}`}
+              >
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          }
           action={
             <div className="flex items-center gap-3">
               {active && (
@@ -130,7 +158,7 @@ export default function IdeasPage() {
                   onClick={() => setFilters(DEFAULT_FILTERS)}
                   className="text-2xs text-ink-3 hover:text-ink underline"
                 >
-                  clear filters
+                  clear
                 </button>
               )}
               <span className="text-2xs font-mono text-ink-3">
@@ -139,56 +167,58 @@ export default function IdeasPage() {
             </div>
           }
         >
-          {/* ── Filter bar ─────────────────────────────────────────────────── */}
-          <div className="px-4 pt-3 pb-4 border-b border-border space-y-3">
+          {/* ── Filter bar (collapsible) ────────────────────────────────────── */}
+          {filtersOpen && (
+            <div className="px-4 pt-3 pb-4 border-b border-border space-y-3">
 
-            {/* Category pills */}
-            {Object.keys(categoryCounts).length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-2xs font-semibold text-ink-3 uppercase tracking-wider shrink-0">Theme</span>
-                {CATEGORY_RULES
-                  .filter(r => categoryCounts[r.label])
-                  .concat(categoryCounts['Other'] ? [{ label: 'Other', color: '#9ca3af', keywords: [] }] : [])
-                  .map(rule => {
-                    const on    = filters.categories.has(rule.label)
-                    const count = categoryCounts[rule.label] ?? 0
-                    return (
-                      <button
-                        key={rule.label}
-                        onClick={() => toggleCategory(rule.label)}
-                        style={on ? { backgroundColor: rule.color, borderColor: rule.color } : {}}
-                        className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-2xs font-semibold transition-all ${
-                          on ? 'text-white' : 'border-border bg-surface-dim text-ink-3 hover:border-ink-3'
-                        }`}
-                      >
-                        {rule.label}
-                        <span className={`font-mono text-2xs ${on ? 'text-white/60' : 'text-ink'}`}>{count}</span>
-                      </button>
-                    )
-                  })}
+              {/* Category pills */}
+              {Object.keys(categoryCounts).length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-2xs font-semibold text-ink-3 uppercase tracking-wider shrink-0">Theme</span>
+                  {CATEGORY_RULES
+                    .filter(r => categoryCounts[r.label])
+                    .concat(categoryCounts['Other'] ? [{ label: 'Other', color: '#9ca3af', keywords: [] }] : [])
+                    .map(rule => {
+                      const on    = filters.categories.has(rule.label)
+                      const count = categoryCounts[rule.label] ?? 0
+                      return (
+                        <button
+                          key={rule.label}
+                          onClick={() => toggleCategory(rule.label)}
+                          style={on ? { backgroundColor: rule.color, borderColor: rule.color } : {}}
+                          className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-2xs font-semibold transition-all ${
+                            on ? 'text-white' : 'border-border bg-surface-dim text-ink-3 hover:border-ink-3'
+                          }`}
+                        >
+                          {rule.label}
+                          <span className={`font-mono text-2xs ${on ? 'text-white/60' : 'text-ink'}`}>{count}</span>
+                        </button>
+                      )
+                    })}
+                </div>
+              )}
+
+              {/* Score + R/R sliders */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <SliderFilter
+                  label="Min Score"
+                  value={filters.minScore}
+                  min={0} max={100} step={5}
+                  display={v => v === 0 ? 'Any' : `${v}+`}
+                  color={filters.minScore >= 70 ? '#059669' : filters.minScore >= 50 ? '#d97706' : '#6b7280'}
+                  onChange={v => setFilters(p => ({ ...p, minScore: v }))}
+                />
+                <SliderFilter
+                  label="Min R/R"
+                  value={filters.minRR}
+                  min={0} max={10} step={0.5}
+                  display={v => v === 0 ? 'Any' : `${v}x+`}
+                  color={filters.minRR >= 3 ? '#059669' : filters.minRR >= 1.5 ? '#d97706' : '#6b7280'}
+                  onChange={v => setFilters(p => ({ ...p, minRR: v }))}
+                />
               </div>
-            )}
-
-            {/* Score + R/R sliders */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SliderFilter
-                label="Min Score"
-                value={filters.minScore}
-                min={0} max={100} step={5}
-                display={v => v === 0 ? 'Any' : `${v}+`}
-                color={filters.minScore >= 70 ? '#059669' : filters.minScore >= 50 ? '#d97706' : '#6b7280'}
-                onChange={v => setFilters(p => ({ ...p, minScore: v }))}
-              />
-              <SliderFilter
-                label="Min R/R"
-                value={filters.minRR}
-                min={0} max={10} step={0.5}
-                display={v => v === 0 ? 'Any' : `${v}x+`}
-                color={filters.minRR >= 3 ? '#059669' : filters.minRR >= 1.5 ? '#d97706' : '#6b7280'}
-                onChange={v => setFilters(p => ({ ...p, minRR: v }))}
-              />
             </div>
-          </div>
+          )}
 
           {/* ── Mobile card list ────────────────────────────────────────────── */}
           <div className="md:hidden divide-y divide-border">
