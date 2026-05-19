@@ -47,7 +47,7 @@ export default function IdeasPage() {
           action={<span className="text-2xs font-mono text-ink-3 border border-border rounded px-2 py-1">RESEARCH ONLY</span>}
         />
 
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Metric label="Total Ideas" value={loading ? '…' : ideas.length} />
           <Metric label="Ready"       value={loading ? '…' : ready}   />
           <Metric label="Wait Entry"  value={loading ? '…' : waiting} />
@@ -67,8 +67,98 @@ export default function IdeasPage() {
           </div>
         </Card>
 
-        <Card title="Idea Feed — click any row for chart & detail">
-          <div className="overflow-x-auto">
+        <Card title="Idea Feed — tap any item for chart & detail">
+          {/* ── Mobile card list (hidden on md+) ── */}
+          <div className="md:hidden divide-y divide-border">
+            {loading ? (
+              <div className="px-4 py-12 text-center text-sm text-ink-3">Loading ideas…</div>
+            ) : ideas.length === 0 ? (
+              <div className="px-4 py-12 text-center text-sm text-ink-3">No ideas synced yet</div>
+            ) : ideas.map((row, i) => {
+              const entryMid = row.ideal_entry ?? ((row.entry_min && row.entry_max)
+                ? (row.entry_min + row.entry_max) / 2 : row.entry_min)
+              const rrVal = rrRatio(entryMid, row.stop_loss, row.take_profit_1)
+              const isSelected = selected?.id === row.id
+              const isMulti = (row.confirmed_by_count ?? 1) > 1
+
+              return (
+                <div
+                  key={row.id}
+                  onClick={() => setSelected(row)}
+                  className={`px-4 py-3 cursor-pointer transition-colors active:bg-surface-dim ${
+                    isSelected   ? 'bg-blue-50 border-l-4 border-l-status-blue' :
+                    isMulti      ? 'bg-amber-50/40 border-l-4 border-l-amber-400' :
+                    'hover:bg-surface-dim'
+                  }`}
+                >
+                  {/* Row 1: rank · symbol · direction · state */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-2xs text-ink-3 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                      <span className="font-mono text-sm font-bold text-ink">{row.normalized_symbol ?? row.symbol ?? '—'}</span>
+                      {row.direction && (
+                        <span className={`text-xs font-bold ${row.direction === 'long' ? 'text-status-green' : 'text-status-red'}`}>
+                          {row.direction === 'long' ? '↑' : '↓'}
+                        </span>
+                      )}
+                      <span className="truncate text-xs text-ink-3">{row.title}</span>
+                    </div>
+                    <StatusChip label={stateLabel(row.action_state)} variant={stateVariant(row.action_state)} />
+                  </div>
+
+                  {/* Row 2: price levels */}
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                    {row.current_price != null && (
+                      <span className="text-2xs font-mono text-ink-3">
+                        Price <span className="text-ink">{money(row.current_price)}</span>
+                      </span>
+                    )}
+                    {(row.entry_min || row.ideal_entry) && (
+                      <span className="text-2xs font-mono text-ink-3">
+                        Entry <span className="text-ink">{entryRange(row.entry_min, row.entry_max, row.ideal_entry)}</span>
+                      </span>
+                    )}
+                    {row.stop_loss != null && (
+                      <span className="text-2xs font-mono text-ink-3">
+                        Stop <span className="text-status-red">{money(row.stop_loss)}</span>
+                      </span>
+                    )}
+                    {row.take_profit_1 != null && (
+                      <span className="text-2xs font-mono text-ink-3">
+                        TP1 <span className="text-status-green">{money(row.take_profit_1)}</span>
+                      </span>
+                    )}
+                    {rrVal && (
+                      <span className="text-2xs font-mono text-ink-3">
+                        R/R <span className="text-ink">{rrVal}x</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Row 3: score · sources · age */}
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Score value={row.total_score} />
+                      {isMulti && (
+                        <span className="text-2xs font-semibold text-amber-600">
+                          {row.confirmed_by_count}× confirmed
+                        </span>
+                      )}
+                      <span className="text-2xs text-ink-3 uppercase tracking-wide">
+                        {row.sources && row.sources.length > 1
+                          ? row.sources.slice(0, 2).map(sourceLabel).join(' · ')
+                          : sourceLabel(row.source)}
+                      </span>
+                    </div>
+                    <span className="text-2xs text-ink-3 shrink-0">{formatAge(row.updated_at)}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ── Desktop table (hidden below md) ── */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-surface-dim border-b border-border">
@@ -102,7 +192,6 @@ export default function IdeasPage() {
                     >
                       <td className="px-4 py-3 font-mono text-xs text-ink-3">{String(i + 1).padStart(2, '0')}</td>
                       <td className="px-4 py-3">
-                        {/* Multi-source confirmation badges */}
                         {row.sources && row.sources.length > 1 ? (
                           <div className="flex flex-col gap-0.5">
                             {row.sources.slice(0, 3).map((src, i) => (
