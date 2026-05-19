@@ -10,10 +10,11 @@ import IdeaDrawer from '@/components/IdeaDrawer'
 import { formatAge } from '@/lib/fmt'
 
 export default function IdeasPage() {
-  const [ideas, setIdeas]   = useState<OpportunityAction[]>([])
-  const [events, setEvents] = useState<OpportunityEngineEvent[]>([])
-  const [selected, setSelected] = useState<OpportunityAction | null>(null)
-  const [loading, setLoading]   = useState(true)
+  const [ideas, setIdeas]         = useState<OpportunityAction[]>([])
+  const [events, setEvents]       = useState<OpportunityEngineEvent[]>([])
+  const [selected, setSelected]   = useState<OpportunityAction | null>(null)
+  const [loading, setLoading]     = useState(true)
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const supabase = createClient()
@@ -28,6 +29,22 @@ export default function IdeasPage() {
   }, [])
 
   const closeDrawer = useCallback(() => setSelected(null), [])
+
+  const toggleFilter = useCallback((source: string) => {
+    setActiveFilters(prev => {
+      const next = new Set(prev)
+      if (next.has(source)) next.delete(source)
+      else next.add(source)
+      return next
+    })
+  }, [])
+
+  const filteredIdeas = activeFilters.size === 0
+    ? ideas
+    : ideas.filter(row => {
+        const rowSources = row.sources?.length ? row.sources : [row.source]
+        return rowSources.some(s => activeFilters.has(sourceLabel(s)))
+      })
 
   const sourceCounts = ideas.reduce<Record<string, number>>((acc, row) => {
     const s = sourceLabel(row.source)
@@ -54,17 +71,45 @@ export default function IdeasPage() {
           <Metric label="Risk Flags"  value={loading ? '…' : risk}    />
         </div>
 
-        <Card title="Source Mix">
+        <Card
+          title="Source Filter"
+          action={activeFilters.size > 0 ? (
+            <button
+              onClick={() => setActiveFilters(new Set())}
+              className="text-2xs text-ink-3 hover:text-ink underline"
+            >
+              clear
+            </button>
+          ) : undefined}
+        >
           <div className="px-4 py-3 flex flex-wrap gap-2">
             {Object.keys(sourceCounts).length === 0 ? (
               <span className="text-sm text-ink-3">{loading ? 'Loading…' : 'No sources synced yet'}</span>
-            ) : Object.entries(sourceCounts).map(([source, count]) => (
-              <span key={source} className="inline-flex items-center gap-2 rounded-sm border border-border bg-surface-dim px-2 py-1">
-                <span className="text-2xs font-semibold uppercase tracking-widest text-ink-3">{source}</span>
-                <span className="font-mono text-xs text-ink">{count}</span>
-              </span>
-            ))}
+            ) : Object.entries(sourceCounts).map(([source, count]) => {
+              const active = activeFilters.has(source)
+              return (
+                <button
+                  key={source}
+                  onClick={() => toggleFilter(source)}
+                  className={`inline-flex items-center gap-2 rounded-sm border px-2 py-1 transition-colors ${
+                    active
+                      ? 'border-black bg-black text-white'
+                      : 'border-border bg-surface-dim hover:border-ink-3'
+                  }`}
+                >
+                  <span className={`text-2xs font-semibold uppercase tracking-widest ${active ? 'text-white' : 'text-ink-3'}`}>
+                    {source}
+                  </span>
+                  <span className={`font-mono text-xs ${active ? 'text-white/70' : 'text-ink'}`}>{count}</span>
+                </button>
+              )
+            })}
           </div>
+          {activeFilters.size > 0 && (
+            <div className="px-4 pb-2 text-2xs text-ink-3">
+              Showing {filteredIdeas.length} of {ideas.length} ideas
+            </div>
+          )}
         </Card>
 
         <Card title="Idea Feed — tap any item for chart & detail">
@@ -72,9 +117,11 @@ export default function IdeasPage() {
           <div className="md:hidden divide-y divide-border">
             {loading ? (
               <div className="px-4 py-12 text-center text-sm text-ink-3">Loading ideas…</div>
-            ) : ideas.length === 0 ? (
-              <div className="px-4 py-12 text-center text-sm text-ink-3">No ideas synced yet</div>
-            ) : ideas.map((row, i) => {
+            ) : filteredIdeas.length === 0 ? (
+              <div className="px-4 py-12 text-center text-sm text-ink-3">
+                {ideas.length === 0 ? 'No ideas synced yet' : 'No ideas match the selected sources'}
+              </div>
+            ) : filteredIdeas.map((row, i) => {
               const entryMid = row.ideal_entry ?? ((row.entry_min && row.entry_max)
                 ? (row.entry_min + row.entry_max) / 2 : row.entry_min)
               const rrVal = rrRatio(entryMid, row.stop_loss, row.take_profit_1)
@@ -170,9 +217,11 @@ export default function IdeasPage() {
               <tbody className="divide-y divide-border">
                 {loading ? (
                   <tr><td colSpan={11} className="px-4 py-12 text-center text-sm text-ink-3">Loading ideas…</td></tr>
-                ) : ideas.length === 0 ? (
-                  <tr><td colSpan={11} className="px-4 py-12 text-center text-sm text-ink-3">No ideas synced yet</td></tr>
-                ) : ideas.map((row, i) => {
+                ) : filteredIdeas.length === 0 ? (
+                  <tr><td colSpan={11} className="px-4 py-12 text-center text-sm text-ink-3">
+                    {ideas.length === 0 ? 'No ideas synced yet' : 'No ideas match the selected sources'}
+                  </td></tr>
+                ) : filteredIdeas.map((row, i) => {
                   const entryMid = row.ideal_entry ?? ((row.entry_min && row.entry_max)
                     ? (row.entry_min + row.entry_max) / 2 : row.entry_min)
                   const rrVal = rrRatio(entryMid, row.stop_loss, row.take_profit_1)
