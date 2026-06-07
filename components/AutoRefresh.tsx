@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-const INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+const INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
 
 export default function AutoRefresh() {
   const router = useRouter()
@@ -16,10 +16,31 @@ export default function AutoRefresh() {
     setSecondsAgo(0)
   }, [router])
 
-  // Auto-refresh every 5 min
+  // Auto-refresh every 15 min, but ONLY while the tab is visible.
+  // A hidden/backgrounded tab refetches nothing — this prevents idle tabs
+  // from silently draining Supabase egress around the clock.
   useEffect(() => {
-    const interval = setInterval(refresh, INTERVAL_MS)
-    return () => clearInterval(interval)
+    let interval: ReturnType<typeof setInterval> | undefined
+
+    const start = () => {
+      if (interval) return
+      interval = setInterval(refresh, INTERVAL_MS)
+    }
+    const stop = () => {
+      if (interval) clearInterval(interval)
+      interval = undefined
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') start()
+      else stop()
+    }
+
+    onVisibility() // honor the tab's initial state
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      stop()
+    }
   }, [refresh])
 
   // Tick the "X min ago" counter every 30s
