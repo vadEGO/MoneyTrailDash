@@ -341,10 +341,25 @@ export interface SignalRadarRow {
 
 export interface ThesisBoardRow {
   thesis: string
+  display_name: string
   strength: number
   lifecycle_stage: string
   crowding_score: number
-  top_expressions: Array<{ symbol: string; score: number }>
+  is_placeholder: boolean
+  top_expressions: Array<{ symbol: string; score: number; is_placeholder: boolean }>
+}
+
+export interface MacroRegimeData {
+  id: string
+  active_season: 'spring' | 'summer' | 'fall' | 'winter' | null
+  active_phase: 'rec' | 'exp' | 'slo' | 'con' | null
+  season_conviction: 'low' | 'medium' | 'high' | null
+  phase_conviction: 'low' | 'medium' | 'high' | null
+  season_notes: string | null
+  phase_notes: string | null
+  country_phases: Record<string, string> | null
+  last_updated: string | null
+  updated_by: string | null
 }
 
 export interface AuditRow {
@@ -362,6 +377,7 @@ export interface DashboardSnapshot {
   generated_at: string | null
   currently_running: boolean
   signal_radar: SignalRadarRow[] | null
+  thesis_board: ThesisBoardRow[] | null
 }
 
 // --- Trade Ideas types ---
@@ -432,6 +448,7 @@ export interface Database {
       public_lilo: { Row: PublicLilo }
       public_tp_layers: { Row: PublicTpLayer }
       dashboard_snapshots: { Row: DashboardSnapshot }
+      macro_regime: { Row: MacroRegimeData }
       symbols: { Row: { symbol: string; asset_name: string | null; asset_class: string | null; last_price: number | null; tradingview_id: string | null } }
       trade_ideas: { Row: TradeIdeaDetail }
       trade_idea_scores: { Row: { idea_id: string; symbol: string; total_score: number | null } }

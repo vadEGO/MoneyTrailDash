@@ -2,18 +2,19 @@ import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
 import PageHeader from '@/components/ui/PageHeader'
 import FearGreedWidget from '@/components/FearGreedWidget'
+import MacroRegimeWidget from '@/components/MacroRegimeWidget'
 import AutoRefresh from '@/components/AutoRefresh'
 import SentimentAlerts from '@/components/SentimentAlerts'
 import Link from 'next/link'
-import { formatAge, getCouncilRuns, getDashboardSummary, getEngineHealth, getOpportunities, getTheses, pct } from '@/lib/openclaw'
+import { formatAge, getCouncilRuns, getDashboardSummary, getEngineHealth, getMacroRegime, getOpportunities, pct } from '@/lib/openclaw'
 
 export default async function CockpitPage() {
-  const [summary, opportunities, theses, councilRuns, health] = await Promise.all([
+  const [summary, opportunities, councilRuns, health, regime] = await Promise.all([
     getDashboardSummary(),
     getOpportunities(5),
-    getTheses(5),
     getCouncilRuns(5),
     getEngineHealth(5),
+    getMacroRegime(),
   ])
 
   const latestHealth = health[0]
@@ -132,21 +133,7 @@ export default async function CockpitPage() {
             </div>
           </Card>
 
-          <Card title="Thesis Movement">
-            <div className="divide-y divide-border">
-              {theses.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-ink-3">No theses synced yet</div>
-              ) : theses.slice(0, 5).map(thesis => (
-                <div key={thesis.id} className="px-4 py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-ink line-clamp-1">{thesis.topic}</span>
-                    <span className="font-mono text-xs text-ink shrink-0">{pct(thesis.confidence)}</span>
-                  </div>
-                  <div className="text-2xs text-ink-3 mt-1">{thesis.confidence_movement ?? 'new'} · {thesis.status ?? 'research'}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <MacroRegimeWidget regime={regime} />
 
           <Card title="System Health">
             <div className="p-4 space-y-3">
