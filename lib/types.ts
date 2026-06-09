@@ -349,6 +349,20 @@ export interface ThesisBoardRow {
   top_expressions: Array<{ symbol: string; score: number; is_placeholder: boolean }>
 }
 
+export interface MacroFitRow {
+  idea_id: string
+  symbol: string
+  asset_class: string | null
+  direction: string | null
+  playbook_key: string | null
+  playbook_stance: string | null
+  macro_fit_score: number | null
+  label: 'tailwind' | 'neutral' | 'headwind' | 'unknown' | null
+  rationale: string | null
+  regime_season: string | null
+  scored_at: string | null
+}
+
 export interface MacroRegimeData {
   id: string
   active_season: 'spring' | 'summer' | 'fall' | 'winter' | null
@@ -475,6 +489,7 @@ export interface Database {
       public_opportunity_action_board: { Row: OpportunityAction }
       public_entry_exit_plans: { Row: EntryExitPlan }
       public_opportunity_engine_events: { Row: OpportunityEngineEvent }
+      public_rv_trade_macro_fit: { Row: MacroFitRow }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>

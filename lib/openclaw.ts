@@ -7,6 +7,7 @@ import type {
   EngineHealthRow,
   EntryExitPlan,
   LlmHealthRow,
+  MacroFitRow,
   MacroRegimeData,
   OpportunityAction,
   OpportunityEngineEvent,
@@ -220,6 +221,18 @@ export async function getOpportunityEngineEvents(limit = 40): Promise<Opportunit
       .from('public_opportunity_engine_events')
       .select('*')
       .order('event_at', { ascending: false, nullsFirst: false })
+      .limit(limit)
+    return data ?? []
+  })
+}
+
+export async function getMacroFit(limit = 200): Promise<MacroFitRow[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['macro_fit', String(limit)], async () => {
+    const { data } = await anonClient()
+      .from('public_rv_trade_macro_fit')
+      .select('*')
+      .order('macro_fit_score', { ascending: false, nullsFirst: false })
       .limit(limit)
     return data ?? []
   })

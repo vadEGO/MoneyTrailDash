@@ -3,18 +3,20 @@ import StatusChip from '@/components/ui/StatusChip'
 import PageHeader from '@/components/ui/PageHeader'
 import FearGreedWidget from '@/components/FearGreedWidget'
 import MacroRegimeWidget from '@/components/MacroRegimeWidget'
+import MacroFitPanel from '@/components/MacroFitPanel'
 import AutoRefresh from '@/components/AutoRefresh'
 import SentimentAlerts from '@/components/SentimentAlerts'
 import Link from 'next/link'
-import { formatAge, getCouncilRuns, getDashboardSummary, getEngineHealth, getMacroRegime, getOpportunities, pct } from '@/lib/openclaw'
+import { formatAge, getCouncilRuns, getDashboardSummary, getEngineHealth, getMacroFit, getMacroRegime, getOpportunities, pct } from '@/lib/openclaw'
 
 export default async function CockpitPage() {
-  const [summary, opportunities, councilRuns, health, regime] = await Promise.all([
+  const [summary, opportunities, councilRuns, health, regime, macroFit] = await Promise.all([
     getDashboardSummary(),
     getOpportunities(5),
     getCouncilRuns(5),
     getEngineHealth(5),
     getMacroRegime(),
+    getMacroFit(),
   ])
 
   const latestHealth = health[0]
@@ -134,6 +136,8 @@ export default async function CockpitPage() {
           </Card>
 
           <MacroRegimeWidget regime={regime} />
+
+          <MacroFitPanel rows={macroFit} />
 
           <Card title="System Health">
             <div className="p-4 space-y-3">
