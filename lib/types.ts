@@ -363,6 +363,22 @@ export interface MacroFitRow {
   scored_at: string | null
 }
 
+export interface CompositeRow {
+  idea_id: string
+  symbol: string
+  asset_class: string | null
+  direction: string | null
+  macro_fit_score: number | null
+  macro_label: string | null
+  technical_score: number | null
+  technical_label: string | null
+  trend: string | null
+  rsi: number | null
+  composite_score: number | null
+  regime_season: string | null
+  scored_at: string | null
+}
+
 export interface MacroRegimeData {
   id: string
   active_season: 'spring' | 'summer' | 'fall' | 'winter' | null
@@ -490,6 +506,7 @@ export interface Database {
       public_entry_exit_plans: { Row: EntryExitPlan }
       public_opportunity_engine_events: { Row: OpportunityEngineEvent }
       public_rv_trade_macro_fit: { Row: MacroFitRow }
+      public_rv_trade_composite: { Row: CompositeRow }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>

@@ -1,22 +1,10 @@
 import Card from '@/components/ui/Card'
-import type { MacroFitRow } from '@/lib/types'
+import type { CompositeRow } from '@/lib/types'
 
-// Surfaces the macro-fit scorer's output (MoneyTrail scripts/score_macro_fit.py):
-// which open trade ideas the current macro regime is a tailwind / headwind for.
-
-const LABEL_STYLES: Record<string, string> = {
-  tailwind: 'text-status-green',
-  headwind: 'text-status-red',
-  neutral: 'text-ink-3',
-  unknown: 'text-ink-3',
-}
-
-const LABEL_DOT: Record<string, string> = {
-  tailwind: 'bg-status-green',
-  headwind: 'bg-status-red',
-  neutral: 'bg-ink-3',
-  unknown: 'bg-ink-3',
-}
+// Surfaces the engine's blended conviction per trade idea: macro fit
+// (score_macro_fit.py) × technical posture (score_technical.py), fused in the
+// public_rv_trade_composite view. Macro = is this idea aligned with the regime?
+// Technical = is the chart confirming? Composite = the single ranked answer.
 
 function scoreColor(score: number | null): string {
   if (score == null) return 'text-ink-3'
@@ -25,44 +13,66 @@ function scoreColor(score: number | null): string {
   return 'text-ink-2'
 }
 
-export default function MacroFitPanel({ rows, limit = 8 }: { rows: MacroFitRow[]; limit?: number }) {
-  const tail = rows.filter(r => r.label === 'tailwind').length
-  const head = rows.filter(r => r.label === 'headwind').length
+function miniBadge(score: number | null, title: string): JSX.Element {
+  const v = score == null ? '—' : score.toFixed(0)
+  return (
+    <span className={`font-mono text-2xs ${scoreColor(score)}`} title={title}>
+      {v}
+    </span>
+  )
+}
+
+export default function MacroFitPanel({ rows, limit = 8 }: { rows: CompositeRow[]; limit?: number }) {
   const season = rows.find(r => r.regime_season)?.regime_season
+  const withTech = rows.filter(r => r.technical_score != null).length
 
   return (
     <Card
-      title="Macro Fit"
+      title="Idea Conviction"
       action={
         rows.length > 0 ? (
-          <span className="font-mono text-2xs">
-            <span className="text-status-green">{tail}↑</span>{' · '}
-            <span className="text-status-red">{head}↓</span>
-            {season ? ` · ${season}` : ''}
+          <span className="font-mono text-2xs text-ink-3">
+            macro×tech{season ? ` · ${season}` : ''}
           </span>
         ) : undefined
       }
     >
       {rows.length === 0 ? (
         <div className="px-4 py-8 text-center text-sm text-ink-3">
-          No macro-fit scores yet — run the engine&apos;s <span className="font-mono text-2xs">score_macro_fit</span> stage.
+          No conviction scores yet — run the engine&apos;s{' '}
+          <span className="font-mono text-2xs">score_macro_fit</span> /{' '}
+          <span className="font-mono text-2xs">score_technical</span> stages.
         </div>
       ) : (
-        <div className="divide-y divide-border">
-          {rows.slice(0, limit).map(r => (
-            <div key={r.idea_id} className="flex items-center gap-3 px-4 py-2.5" title={r.rationale ?? ''}>
-              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${LABEL_DOT[r.label ?? 'unknown']}`} />
-              <span className="font-mono text-sm text-ink w-16 shrink-0">{r.symbol}</span>
-              <span className="text-2xs text-ink-3 uppercase w-12 shrink-0">{r.direction}</span>
-              <span className={`text-2xs uppercase flex-1 ${LABEL_STYLES[r.label ?? 'unknown']}`}>
-                {r.label}
-              </span>
-              <span className={`font-mono text-sm shrink-0 ${scoreColor(r.macro_fit_score)}`}>
-                {r.macro_fit_score?.toFixed(0) ?? '—'}
-              </span>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="flex items-center gap-3 px-4 py-1.5 border-b border-border text-2xs uppercase tracking-wide text-ink-3">
+            <span className="w-14 shrink-0">Symbol</span>
+            <span className="w-10 shrink-0">Dir</span>
+            <span className="flex-1 text-right">Macro</span>
+            <span className="flex-1 text-right">Tech</span>
+            <span className="w-12 text-right">Score</span>
+          </div>
+          <div className="divide-y divide-border">
+            {rows.slice(0, limit).map(r => (
+              <div
+                key={r.idea_id}
+                className="flex items-center gap-3 px-4 py-2.5"
+                title={`Macro: ${r.macro_label ?? '—'} · Technical: ${r.technical_label ?? '—'}${r.trend ? ` (${r.trend}` : ''}${r.rsi != null ? `, RSI ${r.rsi.toFixed(0)})` : r.trend ? ')' : ''}`}
+              >
+                <span className="font-mono text-sm text-ink w-14 shrink-0">{r.symbol}</span>
+                <span className="text-2xs text-ink-3 uppercase w-10 shrink-0">{r.direction}</span>
+                <span className="flex-1 text-right">{miniBadge(r.macro_fit_score, r.macro_label ?? '')}</span>
+                <span className="flex-1 text-right">{miniBadge(r.technical_score, r.technical_label ?? 'no candles')}</span>
+                <span className={`w-12 text-right font-mono text-sm font-semibold ${scoreColor(r.composite_score)}`}>
+                  {r.composite_score?.toFixed(0) ?? '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="px-4 py-2 text-2xs text-ink-3 border-t border-border">
+            {withTech}/{rows.length} ideas have chart data · blended 50/50
+          </div>
+        </>
       )}
     </Card>
   )

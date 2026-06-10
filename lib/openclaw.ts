@@ -6,6 +6,7 @@ import type {
   DashboardSummary,
   EngineHealthRow,
   EntryExitPlan,
+  CompositeRow,
   LlmHealthRow,
   MacroFitRow,
   MacroRegimeData,
@@ -233,6 +234,18 @@ export async function getMacroFit(limit = 200): Promise<MacroFitRow[]> {
       .from('public_rv_trade_macro_fit')
       .select('*')
       .order('macro_fit_score', { ascending: false, nullsFirst: false })
+      .limit(limit)
+    return data ?? []
+  })
+}
+
+export async function getComposite(limit = 200): Promise<CompositeRow[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['composite', String(limit)], async () => {
+    const { data } = await anonClient()
+      .from('public_rv_trade_composite')
+      .select('*')
+      .order('composite_score', { ascending: false, nullsFirst: false })
       .limit(limit)
     return data ?? []
   })
