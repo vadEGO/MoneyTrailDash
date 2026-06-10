@@ -363,6 +363,19 @@ export interface MacroFitRow {
   scored_at: string | null
 }
 
+export interface PortfolioActionRow {
+  symbol: string
+  thesis: string | null
+  direction: string | null
+  composite_score: number | null
+  action: string | null
+  target_pct: number | null
+  reason: string | null
+  heat_score: number | null
+  heat_level: 'cool' | 'warm' | 'hot' | null
+  proposed_at: string | null
+}
+
 export interface CompositeRow {
   idea_id: string
   symbol: string
@@ -507,6 +520,7 @@ export interface Database {
       public_opportunity_engine_events: { Row: OpportunityEngineEvent }
       public_rv_trade_macro_fit: { Row: MacroFitRow }
       public_rv_trade_composite: { Row: CompositeRow }
+      public_portfolio_actions: { Row: PortfolioActionRow }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>

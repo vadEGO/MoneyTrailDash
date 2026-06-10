@@ -10,6 +10,7 @@ import type {
   LlmHealthRow,
   MacroFitRow,
   MacroRegimeData,
+  PortfolioActionRow,
   OpportunityAction,
   OpportunityEngineEvent,
   PersonaPosition,
@@ -246,6 +247,17 @@ export async function getComposite(limit = 200): Promise<CompositeRow[]> {
       .from('public_rv_trade_composite')
       .select('*')
       .order('composite_score', { ascending: false, nullsFirst: false })
+      .limit(limit)
+    return data ?? []
+  })
+}
+
+export async function getPortfolioActions(limit = 50): Promise<PortfolioActionRow[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['portfolio_actions', String(limit)], async () => {
+    const { data } = await anonClient()
+      .from('public_portfolio_actions')
+      .select('*')
       .limit(limit)
     return data ?? []
   })
