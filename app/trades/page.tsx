@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 
-export default function TradesPage() {
-  redirect('/ideas')
+// Folded into the unified Funnel board.
+export default function Page() {
+  redirect('/')
 }
