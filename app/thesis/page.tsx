@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 
-export default function ThesisPage() {
-  redirect('/theses')
+// Folded into the unified Research page.
+export default function Page() {
+  redirect('/research')
 }
