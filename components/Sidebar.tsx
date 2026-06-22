@@ -4,16 +4,17 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 
-// Four surfaces. Funnel is the single idea board; Macro is the market/regime
-// context that gates it (sentiment, regime, portfolio); Research is the shared
-// reasoning pane; Health is ops telemetry. The old Cockpit/Watchlist/Action/
-// Ideas/Theses/Council/Library/Risk routes were all views of these and now
-// redirect here.
+// Five surfaces. Funnel is the single idea board; Portfolio is the build guidance
+// (heat, allocation vs plan, sized actions); Macro is the market/regime context;
+// Research is the shared reasoning pane; Health is ops telemetry. The old
+// Cockpit/Watchlist/Action/Ideas/Theses/Council/Library/Risk routes were all
+// views of these and now redirect here.
 const NAV = [
-  { href: '/',         label: 'FUNNEL',   icon: IdeasIcon },
-  { href: '/macro',    label: 'MACRO',    icon: MacroIcon },
-  { href: '/research', label: 'RESEARCH', icon: LibraryIcon },
-  { href: '/health',   label: 'HEALTH',   icon: HealthIcon },
+  { href: '/',          label: 'FUNNEL',    icon: IdeasIcon },
+  { href: '/portfolio', label: 'PORTFOLIO', icon: PortfolioIcon },
+  { href: '/macro',     label: 'MACRO',     icon: MacroIcon },
+  { href: '/research',  label: 'RESEARCH',  icon: LibraryIcon },
+  { href: '/health',    label: 'HEALTH',    icon: HealthIcon },
 ]
 
 export default function Sidebar() {
@@ -153,6 +154,14 @@ function IdeasIcon({ size, active }: { size: number; active: boolean }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
       <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
       <polyline points="16 7 22 7 22 13"/>
+    </svg>
+  )
+}
+function PortfolioIcon({ size, active }: { size: number; active: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
+      <path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/>
+      <rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/>
     </svg>
   )
 }
