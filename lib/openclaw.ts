@@ -11,6 +11,8 @@ import type {
   MacroFitRow,
   MacroRegimeData,
   PortfolioActionRow,
+  PortfolioProposalRow,
+  ThesisAllocationRow,
   OpportunityAction,
   OpportunityEngineEvent,
   PersonaPosition,
@@ -257,6 +259,27 @@ export async function getPortfolioActions(limit = 50): Promise<PortfolioActionRo
   return cached(['portfolio_actions', String(limit)], async () => {
     const { data } = await anonClient()
       .from('public_portfolio_actions')
+      .select('*')
+      .limit(limit)
+    return data ?? []
+  })
+}
+
+export async function getThesisAllocation(): Promise<ThesisAllocationRow[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['thesis_allocation'], async () => {
+    const { data } = await anonClient()
+      .from('public_thesis_allocation')
+      .select('*')
+    return data ?? []
+  })
+}
+
+export async function getPortfolioProposal(limit = 200): Promise<PortfolioProposalRow[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['portfolio_proposal', String(limit)], async () => {
+    const { data } = await anonClient()
+      .from('public_portfolio_proposal')
       .select('*')
       .limit(limit)
     return data ?? []

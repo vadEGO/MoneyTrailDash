@@ -376,6 +376,30 @@ export interface PortfolioActionRow {
   proposed_at: string | null
 }
 
+export interface ThesisAllocationRow {
+  thesis: string
+  display_name: string | null
+  current_pct: number | null
+  target_pct: number | null
+  max_pct: number | null
+  headroom_pct: number | null
+  nav: number | null
+  updated_at: string | null
+}
+
+export interface PortfolioProposalRow {
+  symbol: string
+  thesis: string | null
+  direction: string | null
+  composite_score: number | null
+  action: string | null      // enter_starter | add | hold | blocked | skip
+  target_pct: number | null
+  reason: string | null
+  heat_score: number | null
+  heat_level: 'cool' | 'warm' | 'hot' | null
+  proposed_at: string | null
+}
+
 export interface CompositeRow {
   idea_id: string
   symbol: string
@@ -521,6 +545,8 @@ export interface Database {
       public_rv_trade_macro_fit: { Row: MacroFitRow }
       public_rv_trade_composite: { Row: CompositeRow }
       public_portfolio_actions: { Row: PortfolioActionRow }
+      public_portfolio_proposal: { Row: PortfolioProposalRow }
+      public_thesis_allocation: { Row: ThesisAllocationRow }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>
