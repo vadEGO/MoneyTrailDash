@@ -4,12 +4,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 
-// Three surfaces only. Funnel is the single idea board; Research is the shared
+// Four surfaces. Funnel is the single idea board; Macro is the market/regime
+// context that gates it (sentiment, regime, portfolio); Research is the shared
 // reasoning pane; Health is ops telemetry. The old Cockpit/Watchlist/Action/
 // Ideas/Theses/Council/Library/Risk routes were all views of these and now
 // redirect here.
 const NAV = [
   { href: '/',         label: 'FUNNEL',   icon: IdeasIcon },
+  { href: '/macro',    label: 'MACRO',    icon: MacroIcon },
   { href: '/research', label: 'RESEARCH', icon: LibraryIcon },
   { href: '/health',   label: 'HEALTH',   icon: HealthIcon },
 ]
@@ -151,6 +153,14 @@ function IdeasIcon({ size, active }: { size: number; active: boolean }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
       <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
       <polyline points="16 7 22 7 22 13"/>
+    </svg>
+  )
+}
+function MacroIcon({ size, active }: { size: number; active: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'currentColor'} strokeWidth="2">
+      <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/>
+      <path d="M12 2a15 15 0 014 10 15 15 0 01-4 10 15 15 0 01-4-10 15 15 0 014-10z"/>
     </svg>
   )
 }
