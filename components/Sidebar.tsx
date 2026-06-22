@@ -17,9 +17,25 @@ const NAV = [
   { href: '/health',    label: 'HEALTH',    icon: HealthIcon },
 ]
 
+const COLLAPSE_KEY = 'mtd.sidebar.collapsed'
+
 export default function Sidebar() {
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false)          // mobile drawer
+  const [collapsed, setCollapsed] = useState(false) // desktop rail
+
+  // Restore the collapsed preference (desktop only) once on mount.
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1') } catch {}
+  }, [])
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0') } catch {}
+      return next
+    })
+  }
 
   // Close drawer on route change
   useEffect(() => { setOpen(false) }, [pathname])
@@ -31,21 +47,25 @@ export default function Sidebar() {
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  const navContent = (
+  // `compact` collapses labels to an icon-only rail (desktop). The mobile drawer
+  // always passes compact=false so it shows full labels.
+  const navContent = (compact: boolean) => (
     <>
       {/* Suite label */}
-      <div className="px-4 pt-4 pb-3 border-b border-border">
-        <div className="flex items-center gap-2">
+      <div className={`pt-4 pb-3 border-b border-border ${compact ? 'px-0' : 'px-4'}`}>
+        <div className={`flex items-center gap-2 ${compact ? 'justify-center' : ''}`}>
           <div className="w-6 h-6 bg-black rounded-sm flex items-center justify-center shrink-0">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="white">
               <rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/>
               <rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/>
             </svg>
           </div>
-          <div>
-            <div className="text-2xs font-semibold text-ink leading-none">Intelligence Suite</div>
-            <div className="text-2xs text-ink-3 font-mono mt-0.5">v2.4.0-STABLE</div>
-          </div>
+          {!compact && (
+            <div>
+              <div className="text-2xs font-semibold text-ink leading-none">Intelligence Suite</div>
+              <div className="text-2xs text-ink-3 font-mono mt-0.5">v2.4.0-STABLE</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -57,34 +77,38 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-4 py-2.5 text-2xs font-semibold tracking-widest transition-colors ${
-                active ? 'bg-black text-white' : 'text-ink-3 hover:text-ink hover:bg-surface-dim'
-              }`}
+              title={compact ? label : undefined}
+              aria-label={label}
+              className={`flex items-center gap-2.5 py-2.5 text-2xs font-semibold tracking-widest transition-colors ${
+                compact ? 'px-0 justify-center' : 'px-4'
+              } ${active ? 'bg-black text-white' : 'text-ink-3 hover:text-ink hover:bg-surface-dim'}`}
             >
               <Icon size={14} active={active} />
-              {label}
+              {!compact && label}
             </Link>
           )
         })}
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-border p-4 space-y-2">
-        <Link href="#" className="flex items-center gap-2 text-2xs text-ink-3 hover:text-ink transition-colors">
+      <div className={`border-t border-border py-4 space-y-2 ${compact ? 'px-2' : 'px-4'}`}>
+        <Link href="#" title={compact ? 'Support' : undefined} className={`flex items-center gap-2 text-2xs text-ink-3 hover:text-ink transition-colors ${compact ? 'justify-center' : ''}`}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
           </svg>
-          SUPPORT
+          {!compact && 'SUPPORT'}
         </Link>
-        <Link href="/health" className="flex items-center gap-2 text-2xs text-ink-3 hover:text-ink transition-colors">
+        <Link href="/health" title={compact ? 'Logs' : undefined} className={`flex items-center gap-2 text-2xs text-ink-3 hover:text-ink transition-colors ${compact ? 'justify-center' : ''}`}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
           </svg>
-          LOGS
+          {!compact && 'LOGS'}
         </Link>
-        <button className="w-full mt-1 bg-status-red text-white text-2xs font-semibold tracking-wider py-1.5 rounded-sm hover:bg-red-700 transition-colors">
-          EMERGENCY KILLSWITCH
-        </button>
+        {!compact && (
+          <button className="w-full mt-1 bg-status-red text-white text-2xs font-semibold tracking-wider py-1.5 rounded-sm hover:bg-red-700 transition-colors">
+            EMERGENCY KILLSWITCH
+          </button>
+        )}
       </div>
     </>
   )
@@ -92,11 +116,24 @@ export default function Sidebar() {
   return (
     <>
       {/* ── Desktop sidebar (always visible ≥ md) ── */}
-      <aside className="hidden md:flex w-40 shrink-0 border-r border-border bg-surface flex-col h-screen">
-        <div className="h-12 border-b border-border flex items-center px-4">
-          <span className="font-mono font-semibold text-sm tracking-tight text-ink">MONEYTRAIL</span>
+      <aside className={`hidden md:flex shrink-0 border-r border-border bg-surface flex-col h-screen transition-[width] duration-200 ${collapsed ? 'w-14' : 'w-40'}`}>
+        <div className={`h-12 border-b border-border flex items-center ${collapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
+          {!collapsed && <span className="font-mono font-semibold text-sm tracking-tight text-ink">MONEYTRAIL</span>}
+          <button
+            onClick={toggleCollapsed}
+            className="p-1 rounded text-ink-3 hover:text-ink hover:bg-surface-dim transition-colors"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {/* Chevron points the way it will move */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {collapsed
+                ? <polyline points="9 18 15 12 9 6"/>
+                : <polyline points="15 18 9 12 15 6"/>}
+            </svg>
+          </button>
         </div>
-        {navContent}
+        {navContent(collapsed)}
       </aside>
 
       {/* ── Mobile: top bar + slide-in drawer ── */}
@@ -141,7 +178,7 @@ export default function Sidebar() {
               </svg>
             </button>
           </div>
-          {navContent}
+          {navContent(false)}
         </aside>
       </div>
     </>
