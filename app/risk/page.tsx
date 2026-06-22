@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-// Folded into the unified Research page.
+// Risk/portfolio context now lives on the Market & Macro page.
 export default function Page() {
-  redirect('/research')
+  redirect('/macro')
 }
