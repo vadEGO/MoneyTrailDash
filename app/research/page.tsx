@@ -1,6 +1,7 @@
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
+import FreshnessChip from '@/components/FreshnessChip'
 import {
   getCouncilRuns,
   getPersonaPositions,
@@ -28,7 +29,12 @@ export default async function ResearchPage() {
       <PageHeader
         title="Research"
         subtitle="The reasoning behind the funnel — council consensus, the belief register, and the public research record."
-        status={current ? <StatusChip label={current.decision_state ?? 'research'} variant="blue" /> : undefined}
+        status={current ? (
+          <span className="inline-flex items-center gap-2">
+            <StatusChip label={current.decision_state ?? 'research'} variant="blue" />
+            <FreshnessChip label="council" at={current.created_at} />
+          </span>
+        ) : undefined}
       />
 
       {/* ── Latest council consensus ──────────────────────────────────────── */}

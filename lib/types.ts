@@ -507,6 +507,22 @@ export interface MarketCandle {
   volume: number | null
 }
 
+// Per-section freshness roll-up, written by MoneyTrail's run_section.py and
+// synced to Supabase. Drives the per-section freshness chips on the dashboard.
+export interface SectionStatus {
+  section: string
+  display_name: string | null
+  status: string            // completed | failed | running | skipped
+  cadence: string | null    // daily | hourly | weekly | on_demand
+  stale_after_hours: number | null
+  last_run_at: string | null
+  last_ok_at: string | null
+  stages: string | null
+  records_processed: number | null
+  error: string | null
+  updated_at: string | null
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -547,6 +563,7 @@ export interface Database {
       public_portfolio_actions: { Row: PortfolioActionRow }
       public_portfolio_proposal: { Row: PortfolioProposalRow }
       public_thesis_allocation: { Row: ThesisAllocationRow }
+      public_section_status: { Row: SectionStatus }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>

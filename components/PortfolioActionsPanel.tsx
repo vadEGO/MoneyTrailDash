@@ -1,5 +1,6 @@
 import Card from '@/components/ui/Card'
-import type { PortfolioActionRow } from '@/lib/types'
+import FreshnessChip from '@/components/FreshnessChip'
+import type { PortfolioActionRow, SectionStatus } from '@/lib/types'
 
 // Surfaces the portfolio construction engine (MoneyTrail build_portfolio.py):
 // the sized entries it proposes from composite-ranked ideas after enforcing
@@ -12,7 +13,7 @@ const HEAT_STYLES: Record<string, string> = {
   hot: 'text-status-red',
 }
 
-export default function PortfolioActionsPanel({ rows }: { rows: PortfolioActionRow[] }) {
+export default function PortfolioActionsPanel({ rows, freshness }: { rows: PortfolioActionRow[]; freshness?: SectionStatus }) {
   const heat = rows.find(r => r.heat_score != null)
   const totalPct = rows.reduce((s, r) => s + (r.target_pct ?? 0), 0)
 
@@ -20,11 +21,14 @@ export default function PortfolioActionsPanel({ rows }: { rows: PortfolioActionR
     <Card
       title="Portfolio Builder"
       action={
-        heat ? (
-          <span className={`font-mono text-2xs ${HEAT_STYLES[heat.heat_level ?? 'cool']}`}>
-            heat {heat.heat_score?.toFixed(0)} · {heat.heat_level}
-          </span>
-        ) : undefined
+        <span className="inline-flex items-center gap-2">
+          {heat && (
+            <span className={`font-mono text-2xs ${HEAT_STYLES[heat.heat_level ?? 'cool']}`}>
+              heat {heat.heat_score?.toFixed(0)} · {heat.heat_level}
+            </span>
+          )}
+          {freshness && <FreshnessChip at={freshness.last_ok_at} staleAfterHrs={freshness.stale_after_hours} />}
+        </span>
       }
     >
       {rows.length === 0 ? (

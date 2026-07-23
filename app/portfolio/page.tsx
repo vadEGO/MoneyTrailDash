@@ -1,7 +1,8 @@
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
-import { getThesisAllocation, getPortfolioProposal, formatAge } from '@/lib/openclaw'
+import FreshnessChip from '@/components/FreshnessChip'
+import { getThesisAllocation, getPortfolioProposal, getSectionStatus } from '@/lib/openclaw'
 import type { PortfolioProposalRow, ThesisAllocationRow } from '@/lib/types'
 
 // Portfolio — the "how to build the portfolio" guidance surface. It answers three
@@ -10,14 +11,17 @@ import type { PortfolioProposalRow, ThesisAllocationRow } from '@/lib/types'
 //   2. Where am I vs my plan?             → thesis allocation (current vs target)
 //   3. What should I actually do?         → sized, gated proposal per idea
 export default async function PortfolioPage() {
-  const [allocation, proposal] = await Promise.all([
+  const [allocation, proposal, sections] = await Promise.all([
     getThesisAllocation(),
     getPortfolioProposal(200),
+    getSectionStatus(),
   ])
 
   const heat = proposal.find(r => r.heat_score != null)
   const nav = allocation.find(a => a.nav != null)?.nav ?? null
-  const updated = allocation[0]?.updated_at ?? proposal[0]?.proposed_at ?? null
+  const portfolio = sections['portfolio']
+  // Prefer the section runner's authoritative last-run; fall back to row timestamps.
+  const updated = portfolio?.last_ok_at ?? allocation[0]?.updated_at ?? proposal[0]?.proposed_at ?? null
 
   // Split proposal by what the engine is actually telling you to do.
   const actionable = proposal.filter(r => r.action === 'enter_starter' || r.action === 'add')
@@ -32,7 +36,7 @@ export default async function PortfolioPage() {
         status={
           <div className="flex items-center gap-2">
             {nav != null && <span className="text-2xs font-mono text-ink-3">NAV ${Math.round(nav).toLocaleString()}</span>}
-            <span className="text-2xs font-mono text-ink-3 uppercase">{formatAge(updated)}</span>
+            <FreshnessChip at={updated} staleAfterHrs={portfolio?.stale_after_hours ?? 28} />
           </div>
         }
       />
