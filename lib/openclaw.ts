@@ -24,6 +24,7 @@ import type {
   RvTradeEvent,
   RvTradeIdea,
   RvTradeSyncStatus,
+  SectionStatus,
   ThesisBoardRow,
 } from '@/lib/types'
 
@@ -311,16 +312,19 @@ export async function getLatestSnapshot(): Promise<{ thesis_board: ThesisBoardRo
   return { thesis_board: snap.thesis_board ?? null }
 }
 
-export function formatAge(iso?: string | null) {
-  if (!iso) return 'Never synced'
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.round(minutes / 60)
-  if (hours < 48) return `${hours}h ago`
-  return `${Math.round(hours / 24)}d ago`
+// Per-section freshness, written by MoneyTrail's run_section.py. Returns a map
+// keyed by section name so each surface can look up its own last-run/stale state
+// independently of the global pipeline sync time.
+export async function getSectionStatus(): Promise<Record<string, SectionStatus>> {
+  if (!hasSupabaseConfig()) return {}
+  return cached(['section_status'], async () => {
+    const { data } = await anonClient().from('public_section_status').select('*')
+    const out: Record<string, SectionStatus> = {}
+    for (const row of (data ?? []) as SectionStatus[]) out[row.section] = row
+    return out
+  })
 }
 
-export function pct(value?: number | null) {
-  if (value == null || Number.isNaN(Number(value))) return '—'
-  return `${Math.round(Number(value) * 100)}%`
-}
+// Re-exported from lib/fmt.ts so existing import sites (`@/lib/openclaw`) keep
+// working while there is a single canonical definition of these formatters.
+export { formatAge, pct } from './fmt'

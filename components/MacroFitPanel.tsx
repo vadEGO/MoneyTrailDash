@@ -1,5 +1,6 @@
 import Card from '@/components/ui/Card'
-import type { CompositeRow } from '@/lib/types'
+import FreshnessChip from '@/components/FreshnessChip'
+import type { CompositeRow, SectionStatus } from '@/lib/types'
 
 // Surfaces the engine's blended conviction per trade idea: macro fit
 // (score_macro_fit.py) × technical posture (score_technical.py), fused in the
@@ -22,7 +23,7 @@ function miniBadge(score: number | null, title: string): JSX.Element {
   )
 }
 
-export default function MacroFitPanel({ rows, limit = 8 }: { rows: CompositeRow[]; limit?: number }) {
+export default function MacroFitPanel({ rows, limit = 8, freshness }: { rows: CompositeRow[]; limit?: number; freshness?: SectionStatus }) {
   const season = rows.find(r => r.regime_season)?.regime_season
   const withTech = rows.filter(r => r.technical_score != null).length
 
@@ -30,11 +31,14 @@ export default function MacroFitPanel({ rows, limit = 8 }: { rows: CompositeRow[
     <Card
       title="Idea Conviction"
       action={
-        rows.length > 0 ? (
-          <span className="font-mono text-2xs text-ink-3">
-            macro×tech{season ? ` · ${season}` : ''}
-          </span>
-        ) : undefined
+        <span className="inline-flex items-center gap-2">
+          {rows.length > 0 && (
+            <span className="font-mono text-2xs text-ink-3">
+              macro×tech{season ? ` · ${season}` : ''}
+            </span>
+          )}
+          {freshness && <FreshnessChip at={freshness.last_ok_at} staleAfterHrs={freshness.stale_after_hours} />}
+        </span>
       }
     >
       {rows.length === 0 ? (
