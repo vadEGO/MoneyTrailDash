@@ -3,7 +3,31 @@ import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
 import FreshnessChip from '@/components/FreshnessChip'
 import { getThesisAllocation, getPortfolioProposal, getSectionStatus } from '@/lib/openclaw'
+import { buildExposureGraph, type ExposureRisk, type ThesisExposure } from '@/lib/portfolio-exposure'
 import type { PortfolioProposalRow, ThesisAllocationRow } from '@/lib/types'
+
+const RISK_COPY: Record<ExposureRisk, { label: string; variant: 'red' | 'amber' | 'green' | 'blue'; note: string }> = {
+  over_max: {
+    label: 'Over hard max',
+    variant: 'red',
+    note: 'Research concentration before considering additional correlated exposure.',
+  },
+  over_target: {
+    label: 'Over target',
+    variant: 'amber',
+    note: 'Above plan but inside the hard ceiling.',
+  },
+  at_target: {
+    label: 'At target',
+    variant: 'green',
+    note: 'Inside the target tolerance.',
+  },
+  under_target: {
+    label: 'Under target',
+    variant: 'blue',
+    note: 'Capacity exists, subject to evidence and entry review.',
+  },
+}
 
 // Portfolio — the "how to build the portfolio" guidance surface. It answers three
 // questions the engine (build_portfolio.py) computes:
@@ -27,6 +51,8 @@ export default async function PortfolioPage() {
   const actionable = proposal.filter(r => r.action === 'enter_starter' || r.action === 'add')
   const holds = proposal.filter(r => r.action === 'hold')
   const blocked = proposal.filter(r => r.action === 'blocked')
+  const exposures = buildExposureGraph(allocation, proposal)
+  const overMax = exposures.filter(exposure => exposure.risk === 'over_max')
 
   return (
     <div className="space-y-4">
@@ -42,6 +68,32 @@ export default async function PortfolioPage() {
       />
 
       <HeatBanner heat={heat} />
+
+      {overMax.length > 0 && (
+        <div className="border border-status-red bg-red-50 px-4 py-3">
+          <div className="text-2xs font-semibold uppercase tracking-widest text-status-red">Concentration review required</div>
+          <p className="mt-1 text-sm text-ink">
+            {overMax.map(exposure => exposure.displayName).join(', ')} {overMax.length === 1 ? 'is' : 'are'} above the configured hard ceiling.
+            This is an attention flag, not a trade instruction.
+          </p>
+        </div>
+      )}
+
+      <Card
+        title="Thesis → Position Exposure"
+        action={<span className="font-mono text-2xs text-ink-3">current / target / max</span>}
+      >
+        {exposures.length === 0 ? (
+          <Empty msg="No public-safe portfolio allocation data is available." />
+        ) : (
+          <div className="divide-y divide-border">
+            {exposures.map(exposure => <ExposureRow key={exposure.thesis} exposure={exposure} />)}
+          </div>
+        )}
+        <div className="border-t border-border px-4 py-2 text-2xs text-ink-3">
+          Hold-state symbols count as current mappings. Enter/add candidates are shown separately and never counted as current exposure.
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Allocation vs plan */}
@@ -87,6 +139,69 @@ export default async function PortfolioPage() {
       )}
     </div>
   )
+}
+
+function ExposureRow({ exposure }: { exposure: ThesisExposure }) {
+  const risk = RISK_COPY[exposure.risk]
+  const scale = Math.max(exposure.maxPct, exposure.currentPct, exposure.targetPct, 0.01)
+  const currentWidth = Math.min(100, (exposure.currentPct / scale) * 100)
+  const targetLeft = Math.min(100, (exposure.targetPct / scale) * 100)
+  const maxLeft = Math.min(100, (exposure.maxPct / scale) * 100)
+
+  return (
+    <div className="grid grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[160px_minmax(260px,1fr)_minmax(220px,0.8fr)] lg:items-center">
+      <div>
+        <div className="text-sm font-semibold text-ink">{exposure.displayName}</div>
+        <div className="mt-1"><StatusChip label={risk.label} variant={risk.variant} /></div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-3 font-mono text-2xs text-ink-3">
+          <span>{formatPct(exposure.currentPct)} current</span>
+          <span>{formatPct(exposure.targetPct)} target · {formatPct(exposure.maxPct)} max</span>
+        </div>
+        <div
+          className="relative h-3 overflow-hidden rounded-sm bg-surface-dim"
+          role="img"
+          aria-label={`${exposure.displayName}: ${formatPct(exposure.currentPct)} current, ${formatPct(exposure.targetPct)} target, ${formatPct(exposure.maxPct)} maximum`}
+        >
+          <div
+            className={`h-full ${exposure.risk === 'over_max' ? 'bg-status-red' : exposure.risk === 'over_target' ? 'bg-status-amber' : 'bg-status-blue'}`}
+            style={{ width: `${currentWidth}%` }}
+          />
+          <div className="absolute inset-y-0 w-0.5 bg-ink" style={{ left: `${targetLeft}%` }} title="Target" />
+          <div className="absolute inset-y-0 w-0.5 bg-status-red" style={{ left: `${maxLeft}%` }} title="Hard maximum" />
+        </div>
+        <p className="mt-1.5 text-2xs text-ink-3">{risk.note}</p>
+      </div>
+
+      <div className="space-y-2">
+        <SymbolList label="Current holds" symbols={exposure.heldSymbols} empty="No symbol mapping" />
+        <SymbolList label="Review candidates" symbols={exposure.candidateSymbols} empty="None" />
+      </div>
+    </div>
+  )
+}
+
+function SymbolList({ label, symbols, empty }: { label: string; symbols: string[]; empty: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="w-24 shrink-0 text-2xs uppercase tracking-wide text-ink-3">{label}</span>
+      <div className="flex flex-wrap gap-1">
+        {symbols.length === 0
+          ? <span className="text-2xs text-ink-3">{empty}</span>
+          : symbols.map(symbol => (
+            <span key={symbol} className="rounded-sm border border-border bg-surface-dim px-1.5 py-0.5 font-mono text-2xs text-ink">
+              {symbol}
+            </span>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+function formatPct(value: number): string {
+  return `${(value * 100).toFixed(1)}%`
 }
 
 // ── Heat banner — risk capacity + what it permits ─────────────────────────────
