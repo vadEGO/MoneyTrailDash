@@ -46,6 +46,7 @@ export default function FunnelBoard({
   composite: CompositeRow[]
 }) {
   const [selected, setSelected] = useState<OpportunityAction | null>(null)
+  const [evidenceReviewOnly, setEvidenceReviewOnly] = useState(false)
 
   // Join macro/tech/conviction by symbol. The opportunity row carries the
   // blended COMP (total_score); the per-factor breakdown lives in the composite
@@ -58,15 +59,21 @@ export default function FunnelBoard({
 
   // Bucket ideas by action_state, preserving the view's existing rank order
   // (it arrives sorted by state priority then score).
+  const evidenceReviews = useMemo(
+    () => ideas.filter(needsEvidenceReview),
+    [ideas],
+  )
+  const visibleIdeas = evidenceReviewOnly ? evidenceReviews : ideas
+
   const byState = useMemo(() => {
     const m = new Map<string, OpportunityAction[]>()
-    for (const row of ideas) {
+    for (const row of visibleIdeas) {
       const key = (row.action_state ?? 'research').toLowerCase()
       if (!m.has(key)) m.set(key, [])
       m.get(key)!.push(row)
     }
     return m
-  }, [ideas])
+  }, [visibleIdeas])
 
   const groups = STATE_ORDER.map(s => ({ ...s, rows: byState.get(s.key) ?? [] })).filter(g => g.rows.length > 0)
 
@@ -82,7 +89,34 @@ export default function FunnelBoard({
 
   return (
     <>
-      <Card title="Funnel" action={<span className="font-mono text-2xs text-ink-3">{ideas.length} ideas</span>}>
+      {evidenceReviews.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setEvidenceReviewOnly(current => !current)}
+          className="mb-3 w-full rounded border border-amber-200 bg-amber-50 px-4 py-3 text-left transition-colors hover:bg-amber-100"
+        >
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-status-amber">
+                Evidence expiry
+              </div>
+              <div className="mt-1 text-sm font-semibold text-ink">
+                {evidenceReviews.length} ideas need a source refresh before their scores are treated as current.
+              </div>
+              <div className="mt-0.5 text-xs text-ink-3">
+                Review timing uses source confirmation, not the latest export timestamp.
+              </div>
+            </div>
+            <span className="text-2xs font-semibold text-status-amber">
+              {evidenceReviewOnly ? 'SHOW FULL FUNNEL' : 'SHOW EXPIRY QUEUE'} →
+            </span>
+          </div>
+        </button>
+      )}
+      <Card
+        title={evidenceReviewOnly ? 'Evidence Review Queue' : 'Funnel'}
+        action={<span className="font-mono text-2xs text-ink-3">{visibleIdeas.length} ideas</span>}
+      >
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -156,6 +190,7 @@ function GroupRows({
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-bold text-ink">{sym || '—'}</span>
                 {row.asset_class && <span className="text-2xs text-ink-3 uppercase">{row.asset_class}</span>}
+                {needsEvidenceReview(row) && <EvidenceBadge row={row} />}
               </div>
               <div className="text-sm font-medium text-ink mt-0.5 line-clamp-1">{row.title}</div>
             </td>
@@ -203,6 +238,19 @@ function ScoreCell({ value, bold = false }: { value: number | null; bold?: boole
   const v = Math.round(Number(value))
   const color = v >= 60 ? 'text-status-green' : v <= 40 ? 'text-status-red' : 'text-ink-2'
   return <span className={`font-mono text-xs ${bold ? 'font-bold text-ink' : color}`}>{v}</span>
+}
+
+function EvidenceBadge({ row }: { row: OpportunityAction }) {
+  const missing = !row.evidence_freshness_status || row.evidence_freshness_status === 'missing'
+  return (
+    <span className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-status-amber">
+      {missing ? 'NO EVIDENCE DATE' : `STALE ${row.evidence_age_days ?? '?'}D`}
+    </span>
+  )
+}
+
+function needsEvidenceReview(row: OpportunityAction) {
+  return !row.evidence_freshness_status || ['stale', 'missing'].includes(row.evidence_freshness_status)
 }
 
 // Entry status — is the current price inside, below, or above the entry zone?

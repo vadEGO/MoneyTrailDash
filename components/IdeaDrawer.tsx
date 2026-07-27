@@ -385,6 +385,36 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
 
           {/* ── Source confirmation ───────────────────────────────────────── */}
           <Section title="Sources">
+            {(() => {
+              const freshnessStatus = idea.evidence_freshness_status ?? 'missing'
+              return (
+                <div className={`mb-3 rounded border p-3 ${
+                  freshnessStatus === 'fresh'
+                    ? 'border-green-100 bg-green-50'
+                    : freshnessStatus === 'aging'
+                      ? 'border-amber-100 bg-amber-50'
+                      : 'border-red-100 bg-red-50'
+                }`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-2xs font-semibold uppercase tracking-wider text-ink-3">
+                      Evidence {freshnessStatus}
+                    </div>
+                    <div className="text-2xs font-mono text-ink-3">
+                      {idea.evidence_age_days == null ? 'undated' : `${idea.evidence_age_days}d old`}
+                      {idea.evidence_sla_days == null ? '' : ` / ${idea.evidence_sla_days}d SLA`}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs text-ink">
+                    {idea.evidence_review_reason ?? 'No dated source confirmation is available; verify provenance before relying on this idea.'}
+                  </div>
+                  {idea.evidence_review_due_at && (
+                    <div className="mt-1 text-2xs text-ink-3">
+                      Review deadline: {fmtDate(idea.evidence_review_due_at)}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             {/* Multi-source confirmation badges */}
             {(idea.sources && idea.sources.length > 0) ? (
               <div className="mb-3">
