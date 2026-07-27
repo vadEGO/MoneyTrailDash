@@ -240,6 +240,12 @@ export interface OpportunityAction {
   why_now: string | null
   next_action: string | null
   what_to_watch: string | null
+  evidence_last_confirmed_at: string | null
+  evidence_review_due_at: string | null
+  evidence_sla_days: number | null
+  evidence_age_days: number | null
+  evidence_freshness_status: 'fresh' | 'aging' | 'stale' | 'missing' | null
+  evidence_review_reason: string | null
   source_url: string | null
   is_tracked: boolean | null
   is_watchlisted: boolean | null
