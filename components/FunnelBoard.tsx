@@ -23,6 +23,11 @@ import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
 import IdeaDrawer from '@/components/IdeaDrawer'
 import { formatAge } from '@/lib/fmt'
+import {
+  buildEvidenceReviewBatch,
+  evidenceReviewPriority,
+  needsEvidenceReview,
+} from '@/lib/evidence-review'
 
 // Lifecycle order — top of funnel (research) to end (invalidated). Each group is
 // a section in the table. `holding` / `exiting` are forward-looking states the
@@ -46,7 +51,7 @@ export default function FunnelBoard({
   composite: CompositeRow[]
 }) {
   const [selected, setSelected] = useState<OpportunityAction | null>(null)
-  const [evidenceReviewOnly, setEvidenceReviewOnly] = useState(false)
+  const [evidenceReviewMode, setEvidenceReviewMode] = useState<'funnel' | 'daily' | 'all'>('funnel')
 
   // Join macro/tech/conviction by symbol. The opportunity row carries the
   // blended COMP (total_score); the per-factor breakdown lives in the composite
@@ -60,10 +65,14 @@ export default function FunnelBoard({
   // Bucket ideas by action_state, preserving the view's existing rank order
   // (it arrives sorted by state priority then score).
   const evidenceReviews = useMemo(
-    () => ideas.filter(needsEvidenceReview),
+    () => buildEvidenceReviewBatch(ideas),
     [ideas],
   )
-  const visibleIdeas = evidenceReviewOnly ? evidenceReviews : ideas
+  const visibleIdeas = evidenceReviewMode === 'daily'
+    ? evidenceReviews.dailyBatch
+    : evidenceReviewMode === 'all'
+      ? evidenceReviews.uniqueReviews
+      : ideas
 
   const byState = useMemo(() => {
     const m = new Map<string, OpportunityAction[]>()
@@ -89,39 +98,51 @@ export default function FunnelBoard({
 
   return (
     <>
-      {evidenceReviews.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setEvidenceReviewOnly(current => !current)}
-          className="mb-3 w-full rounded border border-amber-200 bg-amber-50 px-4 py-3 text-left transition-colors hover:bg-amber-100"
-        >
+      {evidenceReviews.reviewRows.length > 0 && (
+        <div className="mb-3 w-full rounded border border-amber-200 bg-amber-50 px-4 py-3">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest text-status-amber">
-                Evidence expiry
+                Evidence review batch
               </div>
               <div className="mt-1 text-sm font-semibold text-ink">
-                {evidenceReviews.length} ideas need a source refresh before their scores are treated as current.
+                {evidenceReviews.reviewRows.length} stale setups collapse to {evidenceReviews.uniqueReviews.length} symbols.
               </div>
               <div className="mt-0.5 text-xs text-ink-3">
-                Review timing uses source confirmation, not the latest export timestamp.
+                Today&apos;s batch routes the {evidenceReviews.dailyBatch.length} highest-risk symbols first; canonical scores remain unchanged.
               </div>
             </div>
-            <span className="text-2xs font-semibold text-status-amber">
-              {evidenceReviewOnly ? 'SHOW FULL FUNNEL' : 'SHOW EXPIRY QUEUE'} →
-            </span>
+            <div className="mt-2 flex flex-wrap gap-2 sm:mt-0 sm:justify-end">
+              {evidenceReviewMode !== 'funnel' && (
+                <button type="button" onClick={() => setEvidenceReviewMode('funnel')} className="text-2xs font-semibold text-ink-3">
+                  FULL FUNNEL
+                </button>
+              )}
+              <button type="button" onClick={() => setEvidenceReviewMode('daily')} className="text-2xs font-semibold text-status-amber">
+                TODAY&apos;S {evidenceReviews.dailyBatch.length}
+              </button>
+              <button type="button" onClick={() => setEvidenceReviewMode('all')} className="text-2xs font-semibold text-status-amber">
+                ALL {evidenceReviews.uniqueReviews.length} SYMBOLS →
+              </button>
+            </div>
           </div>
-        </button>
+        </div>
       )}
       <Card
-        title={evidenceReviewOnly ? 'Evidence Review Queue' : 'Funnel'}
+        title={
+          evidenceReviewMode === 'daily'
+            ? 'Today’s Evidence Review Batch'
+            : evidenceReviewMode === 'all'
+              ? 'Evidence Review Queue'
+              : 'Funnel'
+        }
         action={<span className="font-mono text-2xs text-ink-3">{visibleIdeas.length} ideas</span>}
       >
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-surface-dim border-b border-border">
-                {['IDEA', 'DIR', 'COMP', 'MACRO', 'TECH', 'CONV', 'ENTRY', 'WHY NOW', 'UPDATED'].map(h => (
+                {['IDEA', 'DIR', 'COMP', 'MACRO', 'TECH', 'CONV', 'ENTRY', 'WHY NOW', 'PRI', 'UPDATED'].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-2xs font-semibold tracking-widest text-ink-3 uppercase whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -162,7 +183,7 @@ function GroupRows({
   return (
     <>
       <tr className="bg-surface-dim/60 border-y border-border">
-        <td colSpan={9} className="px-4 py-1.5">
+        <td colSpan={10} className="px-4 py-1.5">
           <div className="flex items-center gap-2">
             <StatusChip label={`${group.label} · ${group.rows.length}`} variant={stateVariant(group.key)} />
             <span className="text-2xs text-ink-3">{group.blurb}</span>
@@ -191,6 +212,11 @@ function GroupRows({
                 <span className="font-mono text-xs font-bold text-ink">{sym || '—'}</span>
                 {row.asset_class && <span className="text-2xs text-ink-3 uppercase">{row.asset_class}</span>}
                 {needsEvidenceReview(row) && <EvidenceBadge row={row} />}
+                {(row.evidence_duplicate_setup_count ?? 0) > 1 && (
+                  <span className="rounded-sm border border-border px-1.5 py-0.5 text-2xs font-semibold text-ink-3">
+                    {row.evidence_duplicate_setup_count} SETUPS
+                  </span>
+                )}
               </div>
               <div className="text-sm font-medium text-ink mt-0.5 line-clamp-1">{row.title}</div>
             </td>
@@ -219,6 +245,9 @@ function GroupRows({
             <td className="px-4 py-3 max-w-[240px]">
               <span className="text-2xs text-ink-3 line-clamp-2">{row.why_now ?? row.next_action ?? '—'}</span>
             </td>
+
+            {/* Review priority routes stale evidence; it does not alter COMP. */}
+            <td className="px-4 py-3"><EvidencePriority row={row} /></td>
 
             {/* Updated */}
             <td className="px-4 py-3 text-2xs text-ink-3 whitespace-nowrap">{formatAge(row.updated_at)}</td>
@@ -249,8 +278,17 @@ function EvidenceBadge({ row }: { row: OpportunityAction }) {
   )
 }
 
-function needsEvidenceReview(row: OpportunityAction) {
-  return !row.evidence_freshness_status || ['stale', 'missing'].includes(row.evidence_freshness_status)
+function EvidencePriority({ row }: { row: OpportunityAction }) {
+  if (!needsEvidenceReview(row)) return <span className="font-mono text-xs text-ink-3">—</span>
+  const score = evidenceReviewPriority(row)
+  const tier = row.evidence_review_priority_tier
+    ?? (score >= 75 ? 'critical' : score >= 55 ? 'high' : 'standard')
+  const color = tier === 'critical' ? 'text-status-red' : tier === 'high' ? 'text-status-amber' : 'text-ink-3'
+  return (
+    <span className={`font-mono text-xs font-bold ${color}`} title={row.evidence_review_priority_reason ?? undefined}>
+      {score}
+    </span>
+  )
 }
 
 // Entry status — is the current price inside, below, or above the entry zone?

@@ -19,7 +19,9 @@ import {
 // same object (public_opportunity_action_board).
 export default async function FunnelPage() {
   const [ideas, composite, regime, portfolioActions, summary, health] = await Promise.all([
-    getOpportunityActions(200),
+    // The evidence-review batch must see the complete active idea set so
+    // deduplication and priority are not biased by the funnel's first page.
+    getOpportunityActions(500),
     getComposite(),
     getMacroRegime(),
     getPortfolioActions(),
