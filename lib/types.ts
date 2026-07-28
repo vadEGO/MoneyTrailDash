@@ -246,6 +246,10 @@ export interface OpportunityAction {
   evidence_age_days: number | null
   evidence_freshness_status: 'fresh' | 'aging' | 'stale' | 'missing' | null
   evidence_review_reason: string | null
+  evidence_review_priority_score: number | null
+  evidence_review_priority_tier: 'critical' | 'high' | 'standard' | null
+  evidence_review_priority_reason: string | null
+  evidence_duplicate_setup_count?: number
   source_url: string | null
   is_tracked: boolean | null
   is_watchlisted: boolean | null

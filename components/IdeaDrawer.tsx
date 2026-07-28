@@ -412,6 +412,16 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
                       Review deadline: {fmtDate(idea.evidence_review_due_at)}
                     </div>
                   )}
+                  {idea.evidence_review_priority_score != null && (
+                    <div className="mt-2 border-t border-current/10 pt-2 text-xs text-ink">
+                      <span className="font-semibold uppercase">
+                        {idea.evidence_review_priority_tier ?? 'review'} · {idea.evidence_review_priority_score}/100
+                      </span>
+                      {idea.evidence_review_priority_reason && (
+                        <span className="ml-2 text-ink-3">{idea.evidence_review_priority_reason}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })()}
