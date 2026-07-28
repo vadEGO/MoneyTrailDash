@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { buildEvidenceReviewBatch, evidenceReviewPriority } from '../lib/evidence-review'
 import type { OpportunityAction } from '../lib/types'
 
@@ -40,5 +42,21 @@ const fallback = idea({
   confirmed_by_count: 2,
 })
 assert.equal(evidenceReviewPriority(fallback), 90)
+
+const grantMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20260728171538_lock_down_opportunity_action_board_grants.sql',
+  ),
+  'utf8',
+)
+assert.match(
+  grantMigration,
+  /revoke all privileges on public\.public_opportunity_action_board from anon, authenticated;/i,
+)
+assert.match(
+  grantMigration,
+  /grant select on public\.public_opportunity_action_board to anon, authenticated;/i,
+)
 
 console.log('evidence review tests passed')
