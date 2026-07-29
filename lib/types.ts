@@ -439,6 +439,23 @@ export interface MacroRegimeData {
   updated_by: string | null
 }
 
+export interface MarketCatalystEvent {
+  id: string
+  event_type: 'fomc_decision'
+  title: string
+  event_start_at: string
+  event_at: string
+  pre_review_at: string
+  post_review_at: string
+  importance: 'high' | 'medium' | 'low'
+  has_projections: boolean
+  source_name: string
+  source_url: string
+  summary_public: string
+  fetched_at: string
+  event_phase: 'scheduled' | 'pre_review' | 'in_progress' | 'post_review' | 'complete'
+}
+
 export interface AuditRow {
   asset: string
   decision_date: string
@@ -574,6 +591,7 @@ export interface Database {
       public_portfolio_proposal: { Row: PortfolioProposalRow }
       public_thesis_allocation: { Row: ThesisAllocationRow }
       public_section_status: { Row: SectionStatus }
+      public_market_catalyst_events: { Row: MarketCatalystEvent }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>

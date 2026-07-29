@@ -5,16 +5,18 @@ import MacroRegimeWidget from '@/components/MacroRegimeWidget'
 import MacroFitPanel from '@/components/MacroFitPanel'
 import PortfolioActionsPanel from '@/components/PortfolioActionsPanel'
 import FreshnessChip from '@/components/FreshnessChip'
-import { getComposite, getMacroRegime, getPortfolioActions, getSectionStatus } from '@/lib/openclaw'
+import CatalystRiskHorizon from '@/components/CatalystRiskHorizon'
+import { getComposite, getMacroRegime, getMarketCatalystEvents, getPortfolioActions, getSectionStatus } from '@/lib/openclaw'
 
 // Market & Macro — the gating context the old Cockpit sidebar carried, given its
 // own surface: sentiment (Fear & Greed), the full macro regime (seasons/momentum,
 // asset-class playbook, country phases), idea conviction, and portfolio actions.
 // The Funnel's compact MacroHeatGauge is the one-line summary; this is the detail.
 export default async function MacroPage() {
-  const [regime, composite, portfolioActions, sections] = await Promise.all([
+  const [regime, composite, catalysts, portfolioActions, sections] = await Promise.all([
     getMacroRegime(),
     getComposite(),
+    getMarketCatalystEvents(),
     getPortfolioActions(),
     getSectionStatus(),
   ])
@@ -28,6 +30,8 @@ export default async function MacroPage() {
         subtitle="Sentiment, regime, and portfolio context — the conditions that gate the funnel."
         status={scores && <FreshnessChip label="scores" at={scores.last_ok_at} staleAfterHrs={scores.stale_after_hours} />}
       />
+
+      <CatalystRiskHorizon events={catalysts} />
 
       <div className="space-y-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
         {/* Left: sentiment + regime detail (the heart of the old cockpit) */}

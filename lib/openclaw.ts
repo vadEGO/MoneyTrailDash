@@ -10,6 +10,7 @@ import type {
   LlmHealthRow,
   MacroFitRow,
   MacroRegimeData,
+  MarketCatalystEvent,
   PortfolioActionRow,
   PortfolioProposalRow,
   ThesisAllocationRow,
@@ -296,6 +297,18 @@ export async function getMacroRegime(): Promise<MacroRegimeData | null> {
     .eq('id', 'current')
     .single()
   return data ?? null
+}
+
+export async function getMarketCatalystEvents(limit = 8): Promise<MarketCatalystEvent[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['market_catalyst_events', String(limit)], async () => {
+    const { data } = await anonClient()
+      .from('public_market_catalyst_events')
+      .select('*')
+      .order('event_at', { ascending: true })
+      .limit(limit)
+    return data ?? []
+  })
 }
 
 export async function getLatestSnapshot(): Promise<{ thesis_board: ThesisBoardRow[] | null }> {

@@ -1,6 +1,6 @@
 # MoneyTrail Product Roadmap
 
-Last reviewed: 2026-07-28
+Last reviewed: 2026-07-29
 
 MoneyTrail is a research and decision-support system. Evidence quality, disagreement, invalidation, and freshness must be visible before an idea feels actionable. It does not execute trades.
 
@@ -12,9 +12,16 @@ MoneyTrail is a research and decision-support system. Evidence quality, disagree
 | P1 | Evidence-expiry review queue | Prevents a fresh export timestamp from making aging source evidence look current | Shipped 2026-07-27 |
 | P2 | Thesis-to-position exposure graph | Shows correlated theme concentration across current positions | Shipped 2026-07-27 |
 | P3 | Valuation contradiction review queue | Exposes adverse shadow-valuation disagreement | Shipped 2026-07-26 |
-| P4 | Catalyst calendar | Creates dated pre/post-event review tasks for earnings, filings, unlocks, and policy events | Next candidate |
-| P5 | Decision outcome calibration | Tests score bands and source mixes against subsequent outcomes | Planned |
-| P6 | Scenario stress cards | Shows sensitivity to rates, oil, USD, liquidity, and crypto-beta shocks | Discovery |
+| P4 | FOMC event-risk horizon | Creates official-source dated pre/post policy review tasks without changing idea scores | Shipped 2026-07-29 |
+| P5 | Company catalyst coverage | Adds primary-source earnings and material-filing events to idea-specific review windows | Next candidate |
+| P6 | Decision outcome calibration | Tests score bands and source mixes against subsequent outcomes | Planned |
+| P7 | Scenario stress cards | Shows sensitivity to rates, oil, USD, liquidity, and crypto-beta shocks | Discovery |
+
+## 2026-07-29 Decision
+
+Selected an official-source FOMC event-risk horizon as the first bounded catalyst-calendar slice. The live board contains 424 ideas: 390 have a catalyst score of at least 10, while only 5 expose a recognizable date in their watch text. A broad earnings/token calendar would multiply source-quality problems; the Federal Reserve publishes a stable, public meeting schedule with decision timing.
+
+The OpenClaw macro source stage now fetches the official FOMC schedule, creates deterministic pre-event and post-event research windows, and exports only public-safe event metadata. The Funnel and Market & Macro surfaces show the active task and upcoming decisions. This is an attention and risk-awareness overlay only: canonical scores, lifecycle states, portfolio proposals, and trade execution remain untouched.
 
 ## 2026-07-28 Decision
 
@@ -35,4 +42,4 @@ SEC guidance confirms Form 13F can arrive up to 45 days after quarter-end, while
 
 ## Next Review
 
-Measure daily batch completion and refresh yield before changing source SLAs. Then build the catalyst calendar on top of the review-deadline and batching contracts.
+Measure whether event windows trigger timely macro-fit refreshes. The next catalyst slice should add company-specific earnings and material SEC filing events using primary-source identifiers, with explicit missing-date coverage rather than inferred dates.
