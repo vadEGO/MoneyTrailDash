@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node ops/release/check-preview-environment.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "release:check-automations": "python3 ops/release/moneytrail_release.py verify-automations",
+    "release:check-preview": "node ops/release/check-preview-environment.mjs",
+    "release:test": "python3 -m unittest discover -s ops/release/tests -p 'test_*.py' && node ops/release/tests/check-preview-environment.test.mjs"
   },
   "dependencies": {
     "@next/font": "^14.2.15",

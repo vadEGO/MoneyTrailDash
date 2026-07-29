@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneytrail.local/schemas/release-manifest-v1.json",
+  "title": "MoneyTrail release manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "release_id",
+    "status",
+    "candidate",
+    "git",
+    "openclaw",
+    "supabase",
+    "vercel",
+    "freshness",
+    "rollback"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "release_id": { "type": "string", "minLength": 1 },
+    "status": {
+      "enum": ["planning", "preview", "production", "completed", "rolled_back", "failed", "noop"]
+    },
+    "candidate": { "type": "object" },
+    "git": { "type": "object" },
+    "openclaw": { "type": "object" },
+    "supabase": { "type": "object" },
+    "vercel": { "type": "object" },
+    "freshness": { "type": "object" },
+    "rollback": { "type": "object" }
+  },
+  "additionalProperties": false
+}
