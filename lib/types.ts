@@ -102,6 +102,156 @@ export interface EngineHealthRow {
   is_stale: boolean | null
 }
 
+export interface MacroRegimeSnapshot {
+  id: string
+  source: string
+  source_title: string | null
+  source_author: string | null
+  report_date: string | null
+  as_of: string | null
+  macro_season_global: string | null
+  macro_season_us: string | null
+  macro_season_europe: string | null
+  growth_phase: string | null
+  liquidity_trend: string | null
+  financial_conditions: string | null
+  dollar_view: string | null
+  rates_view: string | null
+  oil_shock_status: string | null
+  policy_view: string | null
+  risk_posture: string | null
+  headline_score: number | null
+  liquidity_score: number | null
+  growth_score: number | null
+  inflation_risk_score: number | null
+  policy_support_score: number | null
+  risk_asset_score: number | null
+  defensive_score: number | null
+  summary_public: string | null
+  key_signals: string[] | null
+  risks_public: string[] | null
+  opportunities_public: string[] | null
+  scoring_weights: Record<string, number> | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface MacroAssetOverlay {
+  id: string
+  snapshot_id: string
+  asset_class: string | null
+  symbol: string | null
+  display_name: string | null
+  macro_score: number | null
+  stance: string | null
+  rationale_public: string | null
+  risk_flags_public: string[] | null
+  beneficiary_themes: string[] | null
+  updated_at: string | null
+  report_date?: string | null
+  macro_season_global?: string | null
+  macro_season_us?: string | null
+  macro_season_europe?: string | null
+  growth_phase?: string | null
+  liquidity_trend?: string | null
+  risk_posture?: string | null
+}
+
+export interface MacroDataPoint {
+  id: string
+  schema_version: number | null
+  source: string
+  source_kind: string | null
+  provider: string | null
+  series_id: string
+  indicator_name: string | null
+  country: string | null
+  region: string | null
+  metric_key: string | null
+  pillar: string | null
+  tenor: string | null
+  frequency: string | null
+  observation_date: string | null
+  release_date: string | null
+  available_at: string | null
+  available_at_basis: string | null
+  release_estimated: boolean | null
+  first_seen_at: string | null
+  data_vintage: string | null
+  is_revised: boolean | null
+  revision_count: number | null
+  revision_detected_at: string | null
+  value: number | null
+  unit: string | null
+  change_1p: number | null
+  change_3p: number | null
+  freshness_sla_hours: number | null
+  expected_release_lag_hours: number | null
+  freshness_grace_hours: number | null
+  quality_grade: string | null
+  critical: boolean | null
+  risk_direction: string | null
+  value_type: string | null
+  score_transform: string | null
+  signal_label: string | null
+  latest: boolean | null
+  source_url: string | null
+  relevance_tags: string[] | null
+  fetched_at: string | null
+}
+
+export interface MacroSourceStatus {
+  id: string
+  source: string
+  source_kind: string | null
+  provider: string | null
+  region: string | null
+  enabled: boolean | null
+  cadence: string | null
+  adapter: string | null
+  status: string | null
+  points_ingested: number | null
+  expected_items: number | null
+  active_items: number | null
+  failed_items: string[] | null
+  history_insufficient_items: string[] | null
+  critical_expected: number | null
+  critical_active: number | null
+  stale_items: string[] | null
+  is_stale: boolean | null
+  oldest_observation_date: string | null
+  newest_observation_date: string | null
+  freshness_basis: string | null
+  last_error: string | null
+  activation_note: string | null
+  documentation_url: string | null
+  checked_at: string | null
+}
+
+export type MacroTrafficLight = 'green' | 'amber' | 'red' | 'grey'
+
+export interface MacroRegionalScore {
+  id: string
+  region: string
+  as_of: string | null
+  risk_score: number | null
+  traffic_light: MacroTrafficLight | string | null
+  cycle_phase: string | null
+  rates_score: number | null
+  credit_score: number | null
+  growth_score: number | null
+  inflation_score: number | null
+  liquidity_fx_score: number | null
+  coverage_ratio: number | null
+  is_stale: boolean | null
+  weekly_change: number | null
+  monthly_change: number | null
+  top_positive_drivers: string[] | null
+  top_negative_drivers: string[] | null
+  source_count: number | null
+  updated_at: string | null
+}
+
 export interface PublicReport {
   id: string
   report_type: string
@@ -574,6 +724,13 @@ export interface Database {
       public_portfolio_proposal: { Row: PortfolioProposalRow }
       public_thesis_allocation: { Row: ThesisAllocationRow }
       public_section_status: { Row: SectionStatus }
+      public_macro_regime_latest: { Row: MacroRegimeSnapshot }
+      public_macro_regime_history: { Row: MacroRegimeSnapshot }
+      public_macro_asset_overlays: { Row: MacroAssetOverlay }
+      public_macro_data_latest: { Row: MacroDataPoint }
+      public_macro_source_status: { Row: MacroSourceStatus }
+      public_macro_regional_latest: { Row: MacroRegionalScore }
+      public_macro_regional_history: { Row: MacroRegionalScore }
     }
     Functions: Record<string, never>
     Enums: Record<string, never>
