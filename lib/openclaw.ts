@@ -8,8 +8,13 @@ import type {
   EntryExitPlan,
   CompositeRow,
   LlmHealthRow,
+  MacroAssetOverlay,
+  MacroDataPoint,
   MacroFitRow,
   MacroRegimeData,
+  MacroRegimeSnapshot,
+  MacroRegionalScore,
+  MacroSourceStatus,
   PortfolioActionRow,
   PortfolioProposalRow,
   ThesisAllocationRow,
@@ -296,6 +301,125 @@ export async function getMacroRegime(): Promise<MacroRegimeData | null> {
     .eq('id', 'current')
     .single()
   return data ?? null
+}
+
+export async function getMacroRegimeSnapshot(): Promise<MacroRegimeSnapshot | null> {
+  if (!hasSupabaseConfig()) return null
+  return cached(['macro_regime_snapshot'], async () => {
+    const { data } = await anonClient()
+      .from('public_macro_regime_latest')
+      .select('*')
+      .single()
+    return data ?? null
+  })
+}
+
+export async function getMacroHistory(limit = 12): Promise<MacroRegimeSnapshot[]> {
+  if (!hasSupabaseConfig()) return []
+  const boundedLimit = Math.max(1, Math.min(50, Math.trunc(limit)))
+  return cached(['macro_history', String(boundedLimit)], async () => {
+    const { data } = await anonClient()
+      .from('public_macro_regime_history')
+      .select('*')
+      .limit(boundedLimit)
+    return data ?? []
+  })
+}
+
+export async function getMacroAssetOverlays(limit = 80): Promise<MacroAssetOverlay[]> {
+  if (!hasSupabaseConfig()) return []
+  const boundedLimit = Math.max(1, Math.min(240, Math.trunc(limit)))
+  return cached(['macro_asset_overlays', String(boundedLimit)], async () => {
+    const { data } = await anonClient()
+      .from('public_macro_asset_overlays')
+      .select('*')
+      .order('macro_score', { ascending: false, nullsFirst: false })
+      .limit(boundedLimit)
+    return data ?? []
+  })
+}
+
+export async function getMacroDataLatest(limit = 160): Promise<MacroDataPoint[]> {
+  if (!hasSupabaseConfig()) return []
+  const boundedLimit = Math.max(1, Math.min(300, Math.trunc(limit)))
+  return cached(['macro_data_latest', String(boundedLimit)], async () => {
+    const { data } = await anonClient()
+      .from('public_macro_data_latest')
+      .select('*')
+      .limit(boundedLimit)
+    return data ?? []
+  })
+}
+
+export async function getMacroDataLatestForSeries(seriesIds: readonly string[]): Promise<MacroDataPoint[]> {
+  if (!hasSupabaseConfig()) return []
+  const normalized = Array.from(new Set(seriesIds.map(value => value.trim()).filter(Boolean))).slice(0, 50)
+  if (normalized.length === 0) return []
+  return cached(['macro_data_series', ...normalized], async () => {
+    const { data } = await anonClient()
+      .from('public_macro_data_latest')
+      .select('*')
+      .in('series_id', normalized)
+      .order('observation_date', { ascending: false, nullsFirst: false })
+    return data ?? []
+  })
+}
+
+export async function getMacroSourceStatus(limit = 80): Promise<MacroSourceStatus[]> {
+  if (!hasSupabaseConfig()) return []
+  const boundedLimit = Math.max(1, Math.min(120, Math.trunc(limit)))
+  return cached(['macro_source_status', String(boundedLimit)], async () => {
+    const { data } = await anonClient()
+      .from('public_macro_source_status')
+      .select('*')
+      .limit(boundedLimit)
+    return data ?? []
+  })
+}
+
+export interface MacroRegionalLatestFilters {
+  region?: string | null
+  trafficLight?: string | null
+  includeStale?: boolean
+  limit?: number
+}
+
+export interface MacroRegionalHistoryFilters {
+  region?: string | null
+  from?: string | null
+  to?: string | null
+  limit?: number
+}
+
+export async function getMacroRegionalLatest(filters: MacroRegionalLatestFilters = {}): Promise<MacroRegionalScore[]> {
+  if (!hasSupabaseConfig()) return []
+  const limit = Math.max(1, Math.min(50, Math.trunc(filters.limit ?? 20)))
+  let query = anonClient()
+    .from('public_macro_regional_latest')
+    .select('*')
+    .order('region', { ascending: true })
+    .limit(limit)
+  if (filters.region) query = query.eq('region', filters.region)
+  if (filters.trafficLight) query = query.eq('traffic_light', filters.trafficLight)
+  if (filters.includeStale === false) query = query.eq('is_stale', false)
+  const { data } = await query
+  return data ?? []
+}
+
+export async function getMacroRegionalHistory(filters: MacroRegionalHistoryFilters = {}): Promise<MacroRegionalScore[]> {
+  if (!hasSupabaseConfig()) return []
+  const limit = Math.max(1, Math.min(1000, Math.trunc(filters.limit ?? 180)))
+  let query = anonClient()
+    .from('public_macro_regional_history')
+    .select('*')
+    .order('as_of', { ascending: false, nullsFirst: false })
+    .order('region', { ascending: true })
+    .limit(limit)
+  if (filters.region) query = query.eq('region', filters.region)
+  if (filters.from) query = query.gte('as_of', filters.from)
+  if (filters.to) query = query.lte('as_of', filters.to)
+  const { data } = await query
+  return data ?? []
 }
 
 export async function getLatestSnapshot(): Promise<{ thesis_board: ThesisBoardRow[] | null }> {

@@ -21,6 +21,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://iinzcnqwhltxjilpkojr.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 ```
 
+Dashboard reads require both public variables. Dashboard server code has no service-role credential fallback; missing public configuration yields unavailable read models.
+
 OpenClaw needs this only in its local/private runtime, never in Vercel:
 
 ```bash
@@ -56,6 +58,9 @@ python /Users/vaddylandbot/.openclaw/workspace/scripts/export_cockpit_to_supabas
 - `/library`: searchable research/claim/evidence/report library.
 - `/risk`: public risk flags and constraints.
 - `/health`: sync freshness and LLM reasoning audit.
+- `/macro`: regional macro traffic lights and official-source health, read from Supabase public views.
+
+The macro provider, normalization, freshness, scoring, and publication pipeline is orchestrated exclusively by OpenClaw. The dashboard never calls providers or computes an authoritative regional score. See [`MACRO_TOOL_API.md`](./MACRO_TOOL_API.md) for the API and seven-cycle activation contract.
 
 ## Safety Boundary
 
