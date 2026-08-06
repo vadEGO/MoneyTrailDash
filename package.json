@@ -9,7 +9,9 @@
     "lint": "next lint",
     "test": "npm run test:unit && npm run test:macro",
     "test:unit": "node -r tsx/cjs tests/evidence-review.test.ts && node -r tsx/cjs tests/portfolio-exposure.test.ts && node -r tsx/cjs tests/ticker-aggregate.test.ts && node -r tsx/cjs tests/chart-range.test.ts && node -r tsx/cjs tests/price-feed.test.ts",
-    "test:macro": "node --test lib/macro-read-model.test.mjs"
+    "test:macro": "node --test lib/macro-read-model.test.mjs",
+    "release:check-preview": "node ops/release/check-preview-environment.mjs",
+    "release:test": "python3 -m unittest discover -s ops/release/tests -p 'test_*.py' && node ops/release/tests/check-preview-environment.test.mjs"
   },
   "dependencies": {
     "@next/font": "^14.2.15",

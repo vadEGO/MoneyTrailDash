@@ -1,0 +1,35 @@
+{
+  "policy_version": 1,
+  "release_contract": "contract.md",
+  "coordinator": "moneytrail_release.py",
+  "automations": [
+    {
+      "id": "moneytrail-daily-product-strategy",
+      "active_path": "/Users/vaddylandbot/.codex/automations/moneytrail-daily-product-strategy/automation.toml",
+      "expected_schedule": "FREQ=DAILY;BYHOUR=11;BYMINUTE=30;BYSECOND=0",
+      "required_clauses": [
+        "OpenClaw is the deterministic execution layer",
+        "Protect cross-module freshness",
+        "GitHub",
+        "Supabase",
+        "Vercel",
+        "no-op",
+        "/Users/vaddylandbot/.openclaw/workspace/ops/moneytrail-release/moneytrail_release.py"
+      ]
+    },
+    {
+      "id": "moneytrail-daily-evolution",
+      "active_path": "/Users/vaddylandbot/.codex/automations/moneytrail-daily-evolution/automation.toml",
+      "expected_schedule": "BYHOUR=3;BYMINUTE=12",
+      "required_clauses": [
+        "OpenClaw is the deterministic execution layer",
+        "Protect cross-module freshness",
+        "GitHub",
+        "Supabase",
+        "Vercel",
+        "no-op",
+        "/Users/vaddylandbot/.openclaw/workspace/ops/moneytrail-release/moneytrail_release.py"
+      ]
+    }
+  ]
+}

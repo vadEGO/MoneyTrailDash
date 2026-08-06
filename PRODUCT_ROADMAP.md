@@ -25,6 +25,19 @@ The OpenClaw macro source stage now fetches the official FOMC schedule, creates 
 
 The Market & Macro placement from the original change was dropped: that page was rebuilt around the Regional Macro Risk Board, so the panel would have needed a new home there. Worth revisiting as a follow-up.
 
+## Release Governance
+
+MoneyTrail product work uses the versioned controls in `ops/release`. A
+candidate may produce a successful no-op when it does not clear the value and
+safety threshold. Any implementation must claim the shared release lease,
+publish a release manifest, use an isolated Supabase project for Vercel
+previews, and preserve exact Git/Supabase/Vercel/OpenClaw release identity.
+
+The two scheduled Codex automations are not independent deployers. They share
+one release lease, so only one may own implementation and production release at
+a time. A busy lease or overlapping active PR requires the other automation to
+exit without changing state.
+
 ## 2026-07-28 Decision
 
 Selected evidence-review batching after the live payload measured 352 stale setup rows, including 319 still marked ready. Those rows represented 242 unique symbols, so 110 rows duplicated review effort. Adding catalysts before reducing that burden would worsen the attention problem.
