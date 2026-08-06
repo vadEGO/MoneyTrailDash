@@ -6,14 +6,22 @@
  * Opens when the user clicks any row in the Ideas table.
  * Loads chart data (candles + levels) client-side so the main page stays fast.
  *
+ * The drawer is scoped to a ticker, not a single row. One view is in focus, but
+ * every other view on the same ticker stays listed and selectable, so an opposing
+ * case can be read against the focused thesis rather than being hidden behind a
+ * dedup. When both a long and a short case are open, the re-evaluation section
+ * puts the opposing thesis next to this one's invalidation criteria.
+ *
  * Sections:
  *   1. Header — symbol, direction, state, score
- *   2. Chart — TradingView Lightweight Charts with all levels
- *   3. Entry / SL / TP grid — key numbers at a glance
- *   4. Score breakdown — all 7 sub-scores as bars
- *   5. Thesis — why this idea, why now, what to watch
- *   6. Risk — invalidation, trailing exit, expiry
- *   7. Source — link, discovery date
+ *   2. Stance — how every view on the ticker splits
+ *   3. Chart — TradingView Lightweight Charts with all levels
+ *   4. Entry / SL / TP grid — key numbers at a glance
+ *   5. Score breakdown — all 7 sub-scores as bars
+ *   6. Thesis — why this idea, why now, what to watch
+ *   7. Views on this ticker + re-evaluation against the thesis
+ *   8. Risk — invalidation, trailing exit, expiry
+ *   9. Source — link, discovery date
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -21,6 +29,13 @@ import { createClient } from '@/lib/supabase-client'
 import type { ChartOverlayLevel, MarketCandle, OpportunityAction } from '@/lib/types'
 import StatusChip from '@/components/ui/StatusChip'
 import TradingViewChart from '@/components/TradingViewChart'
+import {
+  opposingViews,
+  supportingViews,
+  STANCE_LABEL_TEXT,
+  type TickerGroup,
+} from '@/lib/ticker-aggregate'
+import { fmtPriceAge, hasNoPlan, priceAgeDays, priceHealth } from '@/lib/price-feed'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -99,15 +114,19 @@ function Pill({ children, color }: { children: React.ReactNode; color: string })
 // ── Main drawer ───────────────────────────────────────────────────────────────
 
 interface Props {
-  idea: OpportunityAction | null
+  selection: { group: TickerGroup; row: OpportunityAction } | null
   onClose: () => void
+  onSelectRow?: (group: TickerGroup, row: OpportunityAction) => void
 }
 
-export default function IdeaDrawer({ idea, onClose }: Props) {
+export default function IdeaDrawer({ selection, onClose, onSelectRow }: Props) {
   const [levels, setLevels]   = useState<ChartOverlayLevel[]>([])
   const [candles, setCandles] = useState<MarketCandle[]>([])
   const [loading, setLoading] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
+
+  const idea  = selection?.row ?? null
+  const group = selection?.group ?? null
 
   // Load chart data when an idea is selected
   useEffect(() => {
@@ -223,6 +242,11 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
               <span className="text-2xs font-mono text-ink-3 border border-border rounded px-1.5 py-0.5 bg-surface-dim">
                 RESEARCH ONLY
               </span>
+              {group?.hasDisagreement && (
+                <span className="text-2xs font-semibold text-status-purple border border-purple-200 bg-purple-50 rounded px-1.5 py-0.5">
+                  DISAGREEMENT
+                </span>
+              )}
             </div>
             <div className="text-sm text-ink font-medium mt-0.5 truncate">{idea.title}</div>
             <div className="text-2xs text-ink-3 font-mono uppercase">{sourceLabel(idea.source)}</div>
@@ -258,14 +282,36 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
                   </div>
                 </div>
               )}
-              {idea.current_price != null && (
-                <div className="bg-surface border border-border rounded px-3 py-1.5 text-center">
-                  <div className="text-2xs text-ink-3">PRICE</div>
-                  <div className="font-mono font-bold text-sm text-ink leading-none mt-0.5">
-                    {money(idea.current_price)}
-                  </div>
+              {/* Always rendered, even with no price — hiding the tile is what let a
+                  dead feed pass for a plain missing field. */}
+              <PriceTile idea={idea} />
+            </div>
+          )}
+
+          {/* ── Stance across every view on this ticker ───────────────────── */}
+          {group && group.setupCount > 1 && (
+            <div className={`mt-3 rounded border p-3 ${
+              group.hasDisagreement ? 'border-purple-200 bg-purple-50' : 'border-border bg-surface-dim'
+            }`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-2xs font-semibold uppercase tracking-wider text-ink-3">
+                  {group.setupCount} views on {sym}
                 </div>
-              )}
+                <div className="flex items-center gap-2 font-mono text-2xs">
+                  <span className="text-status-green">↑ {group.bulls.length} long</span>
+                  <span className="text-status-red">↓ {group.bears.length} short</span>
+                  {group.netStance != null && group.stanceLabel && (
+                    <span className="font-semibold text-ink">
+                      net {group.netStance > 0 ? '+' : ''}{group.netStance} · {STANCE_LABEL_TEXT[group.stanceLabel]}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="mt-1 text-xs text-ink">
+                {group.hasDisagreement
+                  ? 'Sources disagree on direction. Weigh the opposing case below against this thesis before acting.'
+                  : 'All views point the same way; net stance is weighted by score and source breadth.'}
+              </div>
             </div>
           )}
 
@@ -362,6 +408,83 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
               )}
             </Section>
           )}
+
+          {/* ── Every other view on this ticker ───────────────────────────── */}
+          {group && group.setupCount > 1 && (
+            <Section title={`Views on ${sym}`}>
+              <div className="space-y-2">
+                {group.rows.map(view => (
+                  <ViewCard
+                    key={view.id}
+                    view={view}
+                    isFocused={view.id === idea.id}
+                    onSelect={onSelectRow ? () => onSelectRow(group, view) : undefined}
+                  />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* ── Re-evaluate the thesis against the opposing case ──────────── */}
+          {group && (() => {
+            const against = opposingViews(group, idea)
+            const alongside = supportingViews(group, idea)
+            if (against.length === 0 && alongside.length === 0) return null
+            return (
+              <Section title="Re-evaluate">
+                {against.length > 0 ? (
+                  <div className="rounded border border-purple-200 bg-purple-50 p-3">
+                    <div className="text-2xs font-semibold uppercase tracking-wider text-status-purple">
+                      {against.length} opposing view{against.length === 1 ? '' : 's'}
+                    </div>
+                    <div className="mt-1 text-xs text-ink">
+                      This idea is {idea.direction ?? 'undirected'}. Decide whether the opposing case is already
+                      covered by the invalidation criteria below, or whether it breaks the thesis.
+                    </div>
+                    <ul className="mt-2 space-y-2">
+                      {against.map(view => (
+                        <li key={view.id} className="border-t border-purple-200/60 pt-2 first:border-t-0 first:pt-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-2xs font-bold ${
+                              view.direction === 'long' ? 'text-status-green' : 'text-status-red'
+                            }`}>
+                              {view.direction === 'long' ? '↑ LONG' : '↓ SHORT'}
+                            </span>
+                            <span className="font-mono text-2xs uppercase text-ink-3">{sourceLabel(view.source)}</span>
+                            {view.total_score != null && (
+                              <span className="font-mono text-2xs text-ink-3">{Math.round(view.total_score)}/100</span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 text-xs text-ink">{view.thesis ?? view.title}</div>
+                          {view.why_now && (
+                            <div className="mt-0.5 text-2xs text-ink-3">Why now: {view.why_now}</div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    {idea.invalidation && (
+                      <div className="mt-2 rounded border border-purple-200 bg-white/70 p-2">
+                        <div className="text-2xs font-semibold uppercase tracking-wider text-ink-3">
+                          This thesis breaks if
+                        </div>
+                        <div className="mt-0.5 text-xs text-ink">{idea.invalidation}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded border border-border bg-surface-dim p-3">
+                    <div className="text-2xs font-semibold uppercase tracking-wider text-ink-3">
+                      {alongside.length} corroborating view{alongside.length === 1 ? '' : 's'}, no opposition
+                    </div>
+                    <div className="mt-1 text-xs text-ink">
+                      Nothing on file argues the other side. Absence of a bear case is not evidence for the
+                      bull case — check whether anyone has looked.
+                    </div>
+                  </div>
+                )}
+              </Section>
+            )
+          })()}
 
           {/* ── Risk / Invalidation ───────────────────────────────────────── */}
           {(idea.invalidation || idea.next_action) && (
@@ -508,6 +631,106 @@ export default function IdeaDrawer({ idea, onClose }: Props) {
         </div>
       </div>
     </div>
+  )
+}
+
+// ── One view on the ticker, selectable to bring it into focus ─────────────────
+
+// The price tile doubles as the feed indicator: the levels below it are derived
+// from this number, so its absence or age decides whether the plan means anything.
+function PriceTile({ idea }: { idea: OpportunityAction }) {
+  const health = priceHealth(idea)
+
+  if (health === 'missing') {
+    return (
+      <div
+        className="rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-center"
+        title={hasNoPlan(idea)
+          ? 'The exporter wrote no price for this symbol, so no entry, stop or target could be derived.'
+          : 'The exporter wrote no price for this symbol.'}
+      >
+        <div className="text-2xs text-status-amber">PRICE</div>
+        <div className="mt-0.5 font-mono text-sm font-bold leading-none text-status-amber">
+          NO FEED
+        </div>
+      </div>
+    )
+  }
+
+  const age = fmtPriceAge(priceAgeDays(idea))
+  const stale = health === 'stale'
+  return (
+    <div
+      className={`rounded border px-3 py-1.5 text-center ${
+        stale ? 'border-amber-200 bg-amber-50' : 'border-border bg-surface'
+      }`}
+      title={stale ? `This quote was written ${age} ago.` : undefined}
+    >
+      <div className={`text-2xs ${stale ? 'text-status-amber' : 'text-ink-3'}`}>
+        {stale ? `PRICE · ${age} OLD` : 'PRICE'}
+      </div>
+      <div className={`mt-0.5 font-mono text-sm font-bold leading-none ${stale ? 'text-status-amber' : 'text-ink'}`}>
+        {money(idea.current_price)}
+      </div>
+    </div>
+  )
+}
+
+function ViewCard({
+  view, isFocused, onSelect,
+}: {
+  view: OpportunityAction
+  isFocused: boolean
+  onSelect?: () => void
+}) {
+  const body = (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        {view.direction && (
+          <span className={`text-2xs font-bold ${
+            view.direction === 'long' ? 'text-status-green' : 'text-status-red'
+          }`}>
+            {view.direction === 'long' ? '↑ LONG' : '↓ SHORT'}
+          </span>
+        )}
+        <StatusChip label={stateLabel(view.action_state)} variant={stateVariant(view.action_state)} />
+        <span className="font-mono text-2xs uppercase text-ink-3">{sourceLabel(view.source)}</span>
+        {view.total_score != null && (
+          <span className="font-mono text-2xs font-semibold text-ink">{Math.round(view.total_score)}/100</span>
+        )}
+        {(view.confirmed_by_count ?? 0) > 1 && (
+          <span className="rounded-sm border border-border px-1 py-px text-2xs text-ink-3">
+            {view.confirmed_by_count} sources
+          </span>
+        )}
+        {isFocused && (
+          <span className="rounded-sm bg-ink px-1.5 py-px text-2xs font-semibold text-white">VIEWING</span>
+        )}
+      </div>
+      <div className="mt-1 text-xs font-medium text-ink">{view.title}</div>
+      {view.thesis && <div className="mt-0.5 text-2xs text-ink-3">{view.thesis}</div>}
+      <div className="mt-1 flex flex-wrap gap-3 font-mono text-2xs text-ink-3">
+        {view.entry_min != null && view.entry_max != null && (
+          <span>entry {money(view.entry_min)}–{money(view.entry_max)}</span>
+        )}
+        {view.stop_loss != null && <span>stop {money(view.stop_loss)}</span>}
+        {view.take_profit_1 != null && <span>tp1 {money(view.take_profit_1)}</span>}
+        {view.updated_at && <span>{fmtDate(view.updated_at)}</span>}
+      </div>
+    </>
+  )
+
+  const className = `w-full rounded border p-2.5 text-left ${
+    isFocused ? 'border-ink bg-surface-dim' : 'border-border bg-white'
+  }`
+
+  if (!onSelect || isFocused) {
+    return <div className={className}>{body}</div>
+  }
+  return (
+    <button type="button" onClick={onSelect} className={`${className} transition-colors hover:bg-surface-dim`}>
+      {body}
+    </button>
   )
 }
 
