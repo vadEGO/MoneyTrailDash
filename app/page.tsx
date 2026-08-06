@@ -2,6 +2,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import StatusChip from '@/components/ui/StatusChip'
 import AutoRefresh from '@/components/AutoRefresh'
 import MacroHeatGauge from '@/components/MacroHeatGauge'
+import CatalystRiskHorizon from '@/components/CatalystRiskHorizon'
 import FunnelBoard from '@/components/FunnelBoard'
 import {
   formatAge,
@@ -9,6 +10,7 @@ import {
   getDashboardSummary,
   getEngineHealth,
   getMacroRegime,
+  getMarketCatalystEvents,
   getOpportunityActions,
   getPortfolioActions,
 } from '@/lib/openclaw'
@@ -18,13 +20,14 @@ import {
 // Cockpit / Watchlist / Action / Ideas split — all of which were views of this
 // same object (public_opportunity_action_board).
 export default async function FunnelPage() {
-  const [ideas, composite, regime, portfolioActions, summary, health] = await Promise.all([
+  const [ideas, composite, regime, portfolioActions, catalysts, summary, health] = await Promise.all([
     // The evidence-review batch must see the complete active idea set so
     // deduplication and priority are not biased by the funnel's first page.
     getOpportunityActions(500),
     getComposite(),
     getMacroRegime(),
     getPortfolioActions(),
+    getMarketCatalystEvents(),
     getDashboardSummary(),
     getEngineHealth(5),
   ])
@@ -48,6 +51,7 @@ export default async function FunnelPage() {
       />
 
       <MacroHeatGauge regime={regime} portfolioActions={portfolioActions} />
+      <CatalystRiskHorizon events={catalysts} />
 
       <FunnelBoard ideas={ideas} composite={composite} />
     </div>
