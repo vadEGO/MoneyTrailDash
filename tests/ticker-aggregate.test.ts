@@ -165,7 +165,7 @@ assert.equal(mixedCase[0].setupCount, 2)
 // ── The rollup view stays a read-only surface ─────────────────────────────────
 
 const rollupMigration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20260806_ticker_stance_rollup.sql'),
+  resolve(process.cwd(), 'supabase/migrations/20260806051300_ticker_stance_rollup.sql'),
   'utf8',
 )
 assert.match(rollupMigration, /security_invoker = true/i)

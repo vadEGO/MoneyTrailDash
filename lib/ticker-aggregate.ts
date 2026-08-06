@@ -12,7 +12,7 @@ import type { OpportunityAction } from '@/lib/types'
 
 // Lifecycle order — a ticker surfaces in the most advanced state any of its views
 // has reached. Mirrors STATE_ORDER in FunnelBoard and state_priority in
-// supabase/migrations/20260806_ticker_stance_rollup.sql.
+// supabase/migrations/20260806051300_ticker_stance_rollup.sql.
 const STATE_PRIORITY: Record<string, number> = {
   ready: 1,
   wait_for_entry: 2,

@@ -39,7 +39,7 @@ helpers, but they are advisory. Nothing calls them, so nothing merges.
 Do not merge rows to fix the display. The dashboard now aggregates per ticker in
 the read layer:
 
-- `supabase/migrations/20260806_ticker_stance_rollup.sql` adds
+- `supabase/migrations/20260806051300_ticker_stance_rollup.sql` adds
   `public_ticker_stance_rollup`, reporting per ticker: `setup_count`, `bull_count`,
   `bear_count`, `has_disagreement`, and a score-weighted `net_stance`.
 - `lib/ticker-aggregate.ts` computes the same split client-side from raw rows.

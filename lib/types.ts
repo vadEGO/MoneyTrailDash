@@ -667,7 +667,7 @@ export interface TradeIdeaDetail extends TradeIdeaLeaderboardRow {
 // Per-ticker rollup over investment_opportunities. The underlying rows are left
 // intact — this only reports how many views exist on a ticker and how they split,
 // so contrarian theses stay readable instead of being merged away. See
-// supabase/migrations/20260806_ticker_stance_rollup.sql.
+// supabase/migrations/20260806051300_ticker_stance_rollup.sql.
 export interface TickerStance {
   ticker: string
   setup_count: number
