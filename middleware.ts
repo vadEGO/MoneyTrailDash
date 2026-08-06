@@ -35,8 +35,12 @@ export async function middleware(request: NextRequest) {
 
   const isLoginPage = request.nextUrl.pathname.startsWith('/login')
   const isAuthCallback = request.nextUrl.pathname.startsWith('/auth')
+  // /preview renders mock fixtures for local inspection. It reads no real data, but
+  // it is still gated to non-production so it can never become a public surface.
+  const isLocalPreview = process.env.NODE_ENV !== 'production'
+    && request.nextUrl.pathname.startsWith('/preview')
 
-  if (!user && !isLoginPage && !isAuthCallback) {
+  if (!user && !isLoginPage && !isAuthCallback && !isLocalPreview) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
