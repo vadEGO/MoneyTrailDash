@@ -647,6 +647,32 @@ export interface TradeIdeaDetail extends TradeIdeaLeaderboardRow {
   notes: string | null
 }
 
+// Per-ticker rollup over investment_opportunities. The underlying rows are left
+// intact — this only reports how many views exist on a ticker and how they split,
+// so contrarian theses stay readable instead of being merged away. See
+// supabase/migrations/20260806_ticker_stance_rollup.sql.
+export interface TickerStance {
+  ticker: string
+  setup_count: number
+  bull_count: number
+  bear_count: number
+  undirected_count: number
+  has_disagreement: boolean
+  net_stance: number | null
+  stance_label: 'strong_long' | 'long' | 'contested' | 'short' | 'strong_short' | null
+  top_score: number | null
+  avg_score: number | null
+  max_confirmed_by_count: number | null
+  max_review_priority_score: number | null
+  any_tracked: boolean | null
+  any_watchlisted: boolean | null
+  last_updated_at: string | null
+  primary_id: string | null
+  primary_action_state: string | null
+  worst_evidence_freshness: 'fresh' | 'aging' | 'stale' | 'missing' | null
+  distinct_sources: string[] | null
+}
+
 export interface ChartOverlayLevel {
   symbol: string
   idea_id: string | null
@@ -716,6 +742,7 @@ export interface Database {
       public_rv_trade_events: { Row: RvTradeEvent }
       public_rv_trade_sync_status: { Row: RvTradeSyncStatus }
       public_opportunity_action_board: { Row: OpportunityAction }
+      public_ticker_stance_rollup: { Row: TickerStance }
       public_entry_exit_plans: { Row: EntryExitPlan }
       public_opportunity_engine_events: { Row: OpportunityEngineEvent }
       public_rv_trade_macro_fit: { Row: MacroFitRow }

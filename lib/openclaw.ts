@@ -31,6 +31,7 @@ import type {
   RvTradeSyncStatus,
   SectionStatus,
   ThesisBoardRow,
+  TickerStance,
 } from '@/lib/types'
 
 // How long a cached query result is reused before the underlying Supabase
@@ -206,6 +207,20 @@ export async function getOpportunityActions(limit = 120): Promise<OpportunityAct
   return cached(['opportunity_actions', String(limit)], async () => {
     const { data } = await anonClient()
       .from('public_opportunity_action_board')
+      .select('*')
+      .limit(limit)
+    return data ?? []
+  })
+}
+
+// Server-side view of the same per-ticker split the funnel computes from raw rows.
+// Useful as a cross-check that client grouping matches the read model, and cheaper
+// than pulling every row when only the counts are needed.
+export async function getTickerStanceRollup(limit = 300): Promise<TickerStance[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['ticker_stance_rollup', String(limit)], async () => {
+    const { data } = await anonClient()
+      .from('public_ticker_stance_rollup')
       .select('*')
       .limit(limit)
     return data ?? []
