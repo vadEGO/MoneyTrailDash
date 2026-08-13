@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "workspace": "/Users/vaddylandbot/.openclaw/workspace",
+  "jobs": [
+    {
+      "id": "d0bbcf44-fdcc-4f9b-bb3e-aab8572eb232",
+      "name": "MoneyTrail Feeds Refresh",
+      "workflow_name": "moneytrail_feeds_refresh",
+      "engine_argv": ["python3", "scripts/run_moneytrail_engine.py", "--mode", "frequent", "--stages", "sources,export", "--source-groups", "feeds", "--export-sections", "feeds", "--require-stage-success", "--require-export", "--workflow-name", "moneytrail_feeds_refresh"]
+    },
+    {
+      "id": "fe3e9647-4bc8-4424-8d50-0abc4907821d",
+      "name": "MoneyTrail Macro Refresh",
+      "workflow_name": "moneytrail_macro_refresh",
+      "engine_argv": ["python3", "scripts/run_moneytrail_engine.py", "--mode", "frequent", "--stages", "sources,export", "--source-groups", "macro", "--export-sections", "macro", "--require-stage-success", "--require-export", "--workflow-name", "moneytrail_macro_refresh"]
+    },
+    {
+      "id": "ceaa9a12-0011-40c2-bc63-68c0c177caff",
+      "name": "MoneyTrail Filings Refresh",
+      "workflow_name": "moneytrail_filings_refresh",
+      "engine_argv": ["python3", "scripts/run_moneytrail_engine.py", "--mode", "frequent", "--stages", "sources,export", "--source-groups", "filings", "--export-sections", "filings", "--require-stage-success", "--require-export", "--workflow-name", "moneytrail_filings_refresh"]
+    },
+    {
+      "id": "7b297392-4e3b-4853-93b9-1adbdf7fca5b",
+      "name": "MoneyTrail Analysis Refresh",
+      "workflow_name": "moneytrail_analysis_refresh",
+      "engine_argv": ["python3", "scripts/run_moneytrail_engine.py", "--mode", "frequent", "--stages", "sources,analysis,export", "--source-groups", "research", "--offline", "--export-sections", "analysis", "--require-stage-success", "--require-export", "--workflow-name", "moneytrail_analysis_refresh"]
+    },
+    {
+      "id": "04462af6-0f54-4da7-9e5a-1c3a16a463e8",
+      "name": "InvestAnswers MoneyTrail Refresh",
+      "workflow_name": "moneytrail_valuation_trade_ideas_publish",
+      "engine_argv": ["python3", "scripts/run_moneytrail_engine.py", "--mode", "frequent", "--stages", "valuation,export", "--export-sections", "trade_ideas", "--require-stage-success", "--require-export", "--workflow-name", "moneytrail_valuation_trade_ideas_publish"]
+    }
+  ]
+}
