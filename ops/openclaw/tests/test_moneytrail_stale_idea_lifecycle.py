@@ -92,6 +92,22 @@ class StaleIdeaLifecycleTests(unittest.TestCase):
             self.assertEqual(client.rows[0]["lifecycle_status"], "active")
             self.assertTrue(any(event["event_type"] == "stale_idea_reactivated" for event in client.events))
 
+    def test_frequent_export_pass_preserves_monthly_closed_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            state.write_text(
+                '{"schema_version":2,"archived":{"closed":{"archived_at":"2026-05-01T00:00:00Z"}}}',
+                encoding="utf-8",
+            )
+            client = FakeClient([
+                row("closed", lifecycle_status="closed", closed_at="2026-08-01T00:00:00Z"),
+            ])
+            result = MODULE.apply_lifecycle(client, state, as_of=NOW)
+            self.assertEqual(result["rearchived_after_export"], 0)
+            self.assertEqual(result["reactivated"], 0)
+            self.assertEqual(client.rows[0]["lifecycle_status"], "closed")
+            self.assertEqual(client.rows[0]["closed_at"], "2026-08-01T00:00:00Z")
+
 
 if __name__ == "__main__":
     unittest.main()

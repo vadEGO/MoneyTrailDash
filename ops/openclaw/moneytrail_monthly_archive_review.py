@@ -123,7 +123,7 @@ def lifecycle_event(row: dict[str, Any], *, kind: str, at: str, reason: str) -> 
 def portfolio_symbols(client: SupabaseRest) -> set[str]:
     rows = client.request(
         "GET",
-        "portfolio_allocations",
+        "public_portfolio_proposal",
         query={"select": "symbol,action,target_pct,proposed_at", "limit": "5000", "order": "proposed_at.desc"},
     ) or []
     latest: dict[str, dict[str, Any]] = {}

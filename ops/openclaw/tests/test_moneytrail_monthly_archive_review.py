@@ -123,6 +123,14 @@ class MonthlyArchiveReviewTests(unittest.TestCase):
         self.assertTrue(MODULE.first_sunday(datetime(2026, 10, 4, tzinfo=timezone.utc)))
         self.assertFalse(MODULE.first_sunday(datetime(2026, 10, 11, tzinfo=timezone.utc)))
 
+    def test_reads_public_portfolio_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            client = FakeClient([row("btc")], allocations=[{"symbol": "BTC", "action": "hold", "target_pct": 1}])
+            result = MODULE.apply_monthly_review(client, state, as_of=NOW)
+            self.assertEqual(client.assert_request[1], "public_portfolio_proposal")
+            self.assertEqual(result["decision_counts"]["protect"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

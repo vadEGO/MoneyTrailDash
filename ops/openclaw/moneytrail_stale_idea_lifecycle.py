@@ -337,12 +337,21 @@ def apply_lifecycle(
     ]
     rearchive: dict[str, list[str]] = {}
     for row_id, archived in previous_archived.items():
-        if row_id in decisions and decisions[row_id]["archive"] and not by_id[row_id].get("deleted_at"):
+        if (
+            row_id in decisions
+            and decisions[row_id]["archive"]
+            and not by_id[row_id].get("deleted_at")
+            and by_id[row_id].get("lifecycle_status") != "closed"
+        ):
             marker = str((archived or {}).get("archived_at") or now_text)
             rearchive.setdefault(marker, []).append(row_id)
     reactivated = [
         row_id for row_id in previous_archived
-        if row_id in decisions and not decisions[row_id]["archive"]
+        if (
+            row_id in decisions
+            and not decisions[row_id]["archive"]
+            and by_id[row_id].get("lifecycle_status") != "closed"
+        )
     ]
 
     events: list[dict[str, Any]] = []

@@ -49,6 +49,35 @@ comment on column public.investment_opportunities.lifecycle_status is
 comment on column public.investment_opportunities.lifecycle_last_reviewed_at is
   'Monthly closure-review clock. This must not be used as source, analysis, or export freshness.';
 
+create or replace function public.cleanup_expired_investment_opportunities()
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  affected integer;
+begin
+  update public.investment_opportunities
+  set deleted_at = now(),
+      soft_archived_at = now(),
+      closed_at = null,
+      lifecycle_status = 'soft_archived',
+      lifecycle_reason = 'expired decision horizon',
+      lifecycle_managed_by = 'opportunity_expiry_cleanup',
+      lifecycle_policy_version = 2,
+      updated_at = now()
+  where deleted_at is null
+    and coalesce(is_tracked, false) = false
+    and coalesce(is_watchlisted, false) = false
+    and expires_at is not null
+    and expires_at < now();
+
+  get diagnostics affected = row_count;
+  return affected;
+end;
+$$;
+
 create or replace function public.apply_opportunity_lifecycle_transitions(
   p_transitions jsonb,
   p_reviewed_at timestamptz,
