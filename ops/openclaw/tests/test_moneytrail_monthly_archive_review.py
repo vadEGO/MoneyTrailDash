@@ -42,6 +42,7 @@ class FakeClient:
         self.allocations = allocations or []
         self.patches = []
         self.events = []
+        self.transitions = []
 
     def opportunities(self):
         return self.rows
@@ -58,6 +59,19 @@ class FakeClient:
 
     def upsert_events(self, events):
         self.events.extend(events)
+
+    def apply_lifecycle_transitions(self, transitions, *, reviewed_at, policy_version):
+        self.transitions.extend(transitions)
+        for transition in transitions:
+            for item in self.rows:
+                if item["id"] == transition["opportunity_id"]:
+                    item.update({
+                        "lifecycle_status": transition["lifecycle_status"],
+                        "deleted_at": transition["deleted_at"],
+                        "soft_archived_at": transition["soft_archived_at"],
+                        "closed_at": transition["closed_at"],
+                    })
+        return {"updated": len(transitions), "events_inserted": sum(bool(item.get("event_id")) for item in transitions)}
 
 
 class MonthlyArchiveReviewTests(unittest.TestCase):

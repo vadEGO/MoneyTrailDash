@@ -199,6 +199,26 @@ class SupabaseRest:
                 prefer="resolution=merge-duplicates,return=minimal",
             )
 
+    def apply_lifecycle_transitions(
+        self,
+        transitions: list[dict[str, Any]],
+        *,
+        reviewed_at: str,
+        policy_version: int,
+    ) -> dict[str, Any]:
+        if not transitions:
+            return {"updated": 0, "events_inserted": 0}
+        result = self.request(
+            "POST",
+            "rpc/apply_opportunity_lifecycle_transitions",
+            payload={
+                "p_transitions": transitions,
+                "p_reviewed_at": reviewed_at,
+                "p_policy_version": policy_version,
+            },
+        )
+        return result if isinstance(result, dict) else {}
+
 
 def read_state(path: Path) -> dict[str, Any]:
     try:

@@ -180,41 +180,41 @@ def apply_monthly_review(
 
     events: list[dict[str, Any]] = []
     if should_apply:
-        review_groups: dict[str, list[str]] = {}
-        for row_id, decision in decisions.items():
-            if decision["action"] == "protect":
-                review_groups.setdefault(str(decision["reason"]), []).append(row_id)
-        for reason, ids in review_groups.items():
-            client.patch_ids(ids, {
-                "lifecycle_last_reviewed_at": now_text,
-                "lifecycle_reason": f"monthly policy protected: {reason}",
-                "lifecycle_policy_version": SCHEMA_VERSION,
-            })
-        if close_ids:
-            client.patch_ids(close_ids, {
-                "lifecycle_status": "closed",
-                "closed_at": now_text,
-                "lifecycle_last_reviewed_at": now_text,
-                "lifecycle_reason": f"monthly policy: no fresh evidence after {CLOSE_AFTER_DAYS} days",
-                "lifecycle_managed_by": "openclaw_monthly_archive_review",
-                "lifecycle_policy_version": SCHEMA_VERSION,
-            })
-        if reopen_ids:
-            client.patch_ids(reopen_ids, {
-                "deleted_at": None,
-                "soft_archived_at": None,
-                "closed_at": None,
-                "lifecycle_status": "active",
-                "lifecycle_last_reviewed_at": now_text,
-                "lifecycle_reason": "monthly policy: fresh evidence after archive",
-                "lifecycle_managed_by": "openclaw_monthly_archive_review",
-                "lifecycle_policy_version": SCHEMA_VERSION,
-            })
         for row_id in close_ids:
             events.append(lifecycle_event(by_id[row_id], kind="soft-archive-closed", at=now_text, reason=decisions[row_id]["reason"]))
         for row_id in reopen_ids:
             events.append(lifecycle_event(by_id[row_id], kind="soft-archive-reopened", at=now_text, reason=decisions[row_id]["reason"]))
-        client.upsert_events(events)
+        events_by_opportunity = {str(event["opportunity_id"]): event for event in events}
+        transitions: list[dict[str, Any]] = []
+        for row_id, decision in decisions.items():
+            if decision["action"] not in {"protect", "close", "reopen"}:
+                continue
+            row = by_id[row_id]
+            event = events_by_opportunity.get(row_id, {})
+            action = str(decision["action"])
+            transitions.append({
+                "opportunity_id": row_id,
+                "lifecycle_status": "closed" if action == "close" else ("active" if action == "reopen" else "soft_archived"),
+                "deleted_at": None if action == "reopen" else row.get("deleted_at"),
+                "soft_archived_at": None if action == "reopen" else (row.get("soft_archived_at") or row.get("deleted_at")),
+                "closed_at": now_text if action == "close" else (None if action == "reopen" else row.get("closed_at")),
+                "reason": (
+                    f"monthly policy protected: {decision['reason']}"
+                    if action == "protect" else f"monthly policy: {decision['reason']}"
+                ),
+                "managed_by": "openclaw_monthly_archive_review",
+                "event_id": event.get("id"),
+                "event_type": event.get("event_type"),
+                "action_state": event.get("action_state"),
+                "symbol": event.get("symbol"),
+                "title": event.get("title"),
+                "detail": event.get("detail"),
+            })
+        client.apply_lifecycle_transitions(
+            transitions,
+            reviewed_at=now_text,
+            policy_version=SCHEMA_VERSION,
+        )
 
     counts: dict[str, int] = {}
     for decision in decisions.values():
