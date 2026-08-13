@@ -79,6 +79,7 @@ class StaleIdeaLifecycleTests(unittest.TestCase):
             self.assertEqual(first["newly_archived"], 1)
             self.assertEqual(first["current_count"], 1)
             self.assertIsNotNone(client.rows[0]["deleted_at"])
+            self.assertEqual(client.rows[0]["lifecycle_status"], "soft_archived")
             self.assertTrue(any(event["event_type"] == "stale_idea_archived" for event in client.events))
 
             # A canonical export writes the same stable row as current and clears
@@ -88,6 +89,7 @@ class StaleIdeaLifecycleTests(unittest.TestCase):
             self.assertEqual(second["reactivated"], 1)
             self.assertEqual(second["current_count"], 2)
             self.assertIsNone(client.rows[0]["deleted_at"])
+            self.assertEqual(client.rows[0]["lifecycle_status"], "active")
             self.assertTrue(any(event["event_type"] == "stale_idea_reactivated" for event in client.events))
 
 

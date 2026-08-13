@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 RETIRE_AFTER_MISSED_WINDOWS = 3
 MISSING_EVIDENCE_GRACE_DAYS = 30
 PROTECTED_STATES = {"holding", "exiting"}
@@ -158,10 +158,12 @@ class SupabaseRest:
 
     def opportunities(self) -> list[dict[str, Any]]:
         select = (
-            "id,symbol,normalized_symbol,direction,action_state,is_tracked,deleted_at,discovered_at,updated_at,"
+            "id,symbol,normalized_symbol,direction,action_state,is_tracked,is_watchlisted,expires_at,"
+            "deleted_at,discovered_at,updated_at,"
             "evidence_last_confirmed_at,evidence_freshness_status,evidence_age_days,evidence_sla_days,"
             "price_freshness_status,levels_freshness_status,review_last_checked_at,review_freshness_status,"
-            "review_status,actionability_status"
+            "review_status,actionability_status,lifecycle_status,soft_archived_at,closed_at,lifecycle_reason,"
+            "lifecycle_last_reviewed_at,lifecycle_managed_by,lifecycle_policy_version"
         )
         rows: list[dict[str, Any]] = []
         page_size = 1000
@@ -353,12 +355,46 @@ def apply_lifecycle(
 
     if not dry_run:
         if new_ids:
-            client.patch_ids(new_ids, {"deleted_at": now_text})
+            client.patch_ids(
+                new_ids,
+                {
+                    "deleted_at": now_text,
+                    "soft_archived_at": now_text,
+                    "closed_at": None,
+                    "lifecycle_status": "soft_archived",
+                    "lifecycle_reason": "deterministic source-SLA retirement",
+                    "lifecycle_managed_by": "openclaw_stale_lifecycle",
+                    "lifecycle_policy_version": SCHEMA_VERSION,
+                },
+            )
         for marker, ids in rearchive.items():
-            client.patch_ids(ids, {"deleted_at": marker})
-        restore_ids = [row_id for row_id in reactivated if by_id[row_id].get("deleted_at")]
+            client.patch_ids(
+                ids,
+                {
+                    "deleted_at": marker,
+                    "soft_archived_at": marker,
+                    "lifecycle_status": "soft_archived",
+                    "lifecycle_managed_by": "openclaw_stale_lifecycle",
+                    "lifecycle_policy_version": SCHEMA_VERSION,
+                },
+            )
+        # A canonical export may already clear deleted_at before this pass. We
+        # still normalize the explicit lifecycle columns for every reactivated
+        # row so the data contract cannot remain split-brain.
+        restore_ids = list(reactivated)
         if restore_ids:
-            client.patch_ids(restore_ids, {"deleted_at": None})
+            client.patch_ids(
+                restore_ids,
+                {
+                    "deleted_at": None,
+                    "soft_archived_at": None,
+                    "closed_at": None,
+                    "lifecycle_status": "active",
+                    "lifecycle_reason": "fresh evidence restored by OpenClaw",
+                    "lifecycle_managed_by": "openclaw_stale_lifecycle",
+                    "lifecycle_policy_version": SCHEMA_VERSION,
+                },
+            )
         for (review_status, actionability_status, next_action, reason), ids in review_groups.items():
             client.patch_ids(
                 ids,

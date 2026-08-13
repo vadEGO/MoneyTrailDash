@@ -52,3 +52,22 @@ python3 MoneyTrailDash/ops/openclaw/install_moneytrail_capacity_jobs.py
 ```
 
 After the exact commit is reviewed and promoted, install and immediately verify those payloads with `--apply`. The installer validates each live job ID/name pair before mutation and refuses an unexpected target.
+
+`moneytrail_monthly_archive_review.py` adds the final lifecycle stage without
+hard deletion. On the first Sunday of each month it reviews every explicit
+soft archive against its archive age, new evidence, tracked/watchlisted state,
+holding/exiting state, decision horizon, and the latest portfolio allocation.
+The first two distinct monthly cohorts are report-only. From the third cohort,
+rows with 90 days of inactivity become `closed`; their source data, scores,
+provenance, and audit history remain intact. Fresh evidence after archive
+reopens the stable row. Review timestamps never advance source, analysis, or
+export freshness.
+
+The scheduler uses a weekly Sunday expression plus an internal first-Sunday
+guard, avoiding cron day-of-month/day-of-week OR semantics. Verify or install
+the declaration with:
+
+```bash
+python3 MoneyTrailDash/ops/openclaw/install_moneytrail_monthly_archive_job.py
+python3 MoneyTrailDash/ops/openclaw/install_moneytrail_monthly_archive_job.py --apply
+```
