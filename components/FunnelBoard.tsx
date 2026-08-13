@@ -33,6 +33,7 @@ import { formatAge } from '@/lib/fmt'
 import {
   buildEvidenceReviewBatch,
   evidenceReviewPriority,
+  isCurrentIdea,
   needsEvidenceReview,
 } from '@/lib/evidence-review'
 import {
@@ -78,7 +79,7 @@ export default function FunnelBoard({
   composite: CompositeRow[]
 }) {
   const [selected, setSelected] = useState<DrawerSelection | null>(null)
-  const [evidenceReviewMode, setEvidenceReviewMode] = useState<'funnel' | 'daily' | 'all'>('funnel')
+  const [evidenceReviewMode, setEvidenceReviewMode] = useState<'current' | 'daily' | 'review'>('current')
   const [groupMode, setGroupMode] = useState<'ticker' | 'rows'>('ticker')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
@@ -92,12 +93,13 @@ export default function FunnelBoard({
   }, [composite])
 
   const evidenceReviews = useMemo(() => buildEvidenceReviewBatch(ideas), [ideas])
+  const currentIdeas = useMemo(() => ideas.filter(isCurrentIdea), [ideas])
 
   const visibleIdeas = evidenceReviewMode === 'daily'
     ? evidenceReviews.dailyBatch
-    : evidenceReviewMode === 'all'
+    : evidenceReviewMode === 'review'
       ? evidenceReviews.uniqueReviews
-      : ideas
+      : currentIdeas
 
   // Grouped over every row, not just the visible ones, so the drawer can always
   // show the full set of views on a ticker even inside a filtered batch.
@@ -189,23 +191,23 @@ export default function FunnelBoard({
                 Evidence review batch
               </div>
               <div className="mt-1 text-sm font-semibold text-ink">
-                {evidenceReviews.reviewRows.length} stale setups collapse to {evidenceReviews.uniqueReviews.length} symbols.
+                {evidenceReviews.reviewRows.length} setups need re-evaluation across {evidenceReviews.uniqueReviews.length} symbols.
               </div>
               <div className="mt-0.5 text-xs text-ink-3">
                 Today&apos;s batch routes the {evidenceReviews.dailyBatch.length} highest-risk symbols first; canonical scores remain unchanged.
               </div>
             </div>
             <div className="mt-2 flex flex-wrap gap-2 sm:mt-0 sm:justify-end">
-              {evidenceReviewMode !== 'funnel' && (
-                <button type="button" onClick={() => setEvidenceReviewMode('funnel')} className="text-2xs font-semibold text-ink-3">
-                  FULL FUNNEL
+              {evidenceReviewMode !== 'current' && (
+                <button type="button" onClick={() => setEvidenceReviewMode('current')} className="text-2xs font-semibold text-ink-3">
+                  CURRENT {currentIdeas.length}
                 </button>
               )}
               <button type="button" onClick={() => setEvidenceReviewMode('daily')} className="text-2xs font-semibold text-status-amber">
                 TODAY&apos;S {evidenceReviews.dailyBatch.length}
               </button>
-              <button type="button" onClick={() => setEvidenceReviewMode('all')} className="text-2xs font-semibold text-status-amber">
-                ALL {evidenceReviews.uniqueReviews.length} SYMBOLS →
+              <button type="button" onClick={() => setEvidenceReviewMode('review')} className="text-2xs font-semibold text-status-amber">
+                REVIEW {evidenceReviews.uniqueReviews.length} →
               </button>
             </div>
           </div>
@@ -249,9 +251,9 @@ export default function FunnelBoard({
         title={
           evidenceReviewMode === 'daily'
             ? 'Today’s Evidence Review Batch'
-            : evidenceReviewMode === 'all'
+            : evidenceReviewMode === 'review'
               ? 'Evidence Review Queue'
-              : 'Funnel'
+              : 'Current Decision Funnel'
         }
         action={
           <div className="flex items-center gap-3">
@@ -285,7 +287,13 @@ export default function FunnelBoard({
           </div>
         }
       >
-        <div className="overflow-x-auto">
+        {visibleCount === 0 ? (
+          <div className="px-4 py-10 text-center text-sm text-ink-3">
+            {evidenceReviewMode === 'current'
+              ? 'No ideas currently pass all four freshness clocks. Use the review queue to see what OpenClaw is re-evaluating.'
+              : 'No ideas require review.'}
+          </div>
+        ) : <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-surface-dim border-b border-border">
@@ -309,7 +317,7 @@ export default function FunnelBoard({
               ))}
             </tbody>
           </table>
-        </div>
+        </div>}
       </Card>
 
       <IdeaDrawer selection={selected} onClose={() => setSelected(null)} onSelectRow={select} />
@@ -579,9 +587,18 @@ function ScoreCell({ value, bold = false }: { value: number | null; bold?: boole
 
 function EvidenceBadge({ row }: { row: OpportunityAction }) {
   const missing = !row.evidence_freshness_status || row.evidence_freshness_status === 'missing'
+  const label = missing
+    ? 'NO EVIDENCE DATE'
+    : row.evidence_freshness_status === 'stale'
+      ? `STALE ${row.evidence_age_days ?? '?'}D`
+      : row.price_freshness_status !== 'fresh'
+        ? `PRICE ${(row.price_freshness_status ?? 'missing').toUpperCase()}`
+        : row.levels_freshness_status !== 'fresh'
+          ? `LEVELS ${(row.levels_freshness_status ?? 'missing').toUpperCase()}`
+          : `REVIEW ${(row.review_freshness_status ?? 'missing').toUpperCase()}`
   return (
     <span className="rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-status-amber">
-      {missing ? 'NO EVIDENCE DATE' : `STALE ${row.evidence_age_days ?? '?'}D`}
+      {label}
     </span>
   )
 }

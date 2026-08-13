@@ -31,6 +31,13 @@ def guarded_argv(workspace: Path, job: dict[str, Any]) -> list[str]:
         "--workflow-name",
         str(job["workflow_name"]),
         "--",
+        "python3",
+        str(ROOT / "ops/openclaw/moneytrail_stale_idea_lifecycle.py"),
+        "--workspace",
+        str(workspace),
+        "--workflow-name",
+        str(job["workflow_name"]),
+        "--",
         *[str(value) for value in job["engine_argv"]],
     ]
 

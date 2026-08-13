@@ -400,6 +400,22 @@ export interface OpportunityAction {
   evidence_review_priority_tier: 'critical' | 'high' | 'standard' | null
   evidence_review_priority_reason: string | null
   evidence_duplicate_setup_count?: number
+  price_as_of?: string | null
+  price_review_due_at?: string | null
+  price_age_hours?: number | null
+  price_freshness_status?: 'fresh' | 'aging' | 'stale' | 'missing' | null
+  price_source?: string | null
+  levels_last_revalidated_at?: string | null
+  levels_review_due_at?: string | null
+  levels_age_days?: number | null
+  levels_freshness_status?: 'fresh' | 'aging' | 'stale' | 'missing' | null
+  levels_review_reason?: string | null
+  review_last_checked_at?: string | null
+  review_freshness_status?: 'fresh' | 'aging' | 'stale' | 'missing' | null
+  review_status?: string | null
+  review_next_action?: string | null
+  actionability_status?: 'actionable' | 'review_required' | 'quarantined' | null
+  actionability_reason?: string | null
   source_url: string | null
   is_tracked: boolean | null
   is_watchlisted: boolean | null

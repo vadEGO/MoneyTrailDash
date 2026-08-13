@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { buildEvidenceReviewBatch, evidenceReviewPriority } from '../lib/evidence-review'
+import { buildEvidenceReviewBatch, evidenceReviewPriority, isCurrentIdea } from '../lib/evidence-review'
 import type { OpportunityAction } from '../lib/types'
 
 function idea(overrides: Partial<OpportunityAction>): OpportunityAction {
@@ -17,6 +17,7 @@ function idea(overrides: Partial<OpportunityAction>): OpportunityAction {
     evidence_sla_days: 14,
     confirmed_by_count: 1,
     is_watchlisted: true,
+    actionability_status: 'quarantined',
     ...overrides,
   } as OpportunityAction
 }
@@ -25,7 +26,16 @@ const rows = [
   idea({ id: 'btc-old', normalized_symbol: 'BTC', evidence_review_priority_score: 70, total_score: 82 }),
   idea({ id: 'btc-priority', normalized_symbol: 'BTC', evidence_review_priority_score: 90, total_score: 88 }),
   idea({ id: 'eth', normalized_symbol: 'ETH', evidence_review_priority_score: 75 }),
-  idea({ id: 'fresh', normalized_symbol: 'SOL', evidence_freshness_status: 'fresh', evidence_review_priority_score: null }),
+  idea({
+    id: 'fresh',
+    normalized_symbol: 'SOL',
+    evidence_freshness_status: 'fresh',
+    price_freshness_status: 'fresh',
+    levels_freshness_status: 'fresh',
+    review_freshness_status: 'fresh',
+    actionability_status: 'review_required',
+    evidence_review_priority_score: null,
+  }),
 ]
 
 const result = buildEvidenceReviewBatch(rows, 1)
@@ -42,6 +52,21 @@ const fallback = idea({
   confirmed_by_count: 2,
 })
 assert.equal(evidenceReviewPriority(fallback), 90)
+
+assert.equal(isCurrentIdea(idea({
+  evidence_freshness_status: 'fresh',
+  price_freshness_status: 'fresh',
+  levels_freshness_status: 'fresh',
+  review_freshness_status: 'fresh',
+  actionability_status: 'review_required',
+})), true)
+assert.equal(isCurrentIdea(idea({
+  evidence_freshness_status: 'fresh',
+  price_freshness_status: 'fresh',
+  levels_freshness_status: 'missing',
+  review_freshness_status: 'fresh',
+  actionability_status: 'quarantined',
+})), false)
 
 const grantMigration = readFileSync(
   resolve(

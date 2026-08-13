@@ -27,6 +27,23 @@ python3 MoneyTrailDash/ops/openclaw/moneytrail_capacity_guard.py \
 
 Scheduled job payloads should call this wrapper rather than invoking `run_moneytrail_engine.py` directly. The wrapper does not replace the engine, alter section freshness, or bypass its queue/circuit behavior.
 
+`moneytrail_stale_idea_lifecycle.py` runs inside the capacity guard, immediately
+before and after the canonical engine. It soft-archives an untracked idea only
+after its evidence has missed three complete source-SLA windows, or after 30
+days with no dated evidence. Tracked, holding, and exiting rows are protected.
+The source row and score remain in Supabase; `deleted_at` only removes it from
+the live action-board view. If a later canonical export supplies current
+evidence, the same stable row is automatically restored and an audit event is
+written. Its state ledger is atomically maintained at
+`data/moneytrail-engine/stale_idea_lifecycle_state.json`.
+
+This ordering prevents old rows from polluting the funnel before a run and
+rechecks them after an export. A failed engine cannot reactivate anything, and
+the lifecycle exits non-zero when its final Supabase verification fails. After
+the archive cutover it regenerates the existing OpenClaw review queue, so the
+dashboard's review count and the local audit artifact cover only ideas that are
+still inside the re-evaluation window.
+
 `moneytrail_capacity_jobs.json` versions the five canonical producer/publisher job payloads. Verify the live scheduler without changing it:
 
 ```bash

@@ -23,7 +23,12 @@ class CapacityJobInstallerTest(unittest.TestCase):
         self.assertIn("moneytrail_capacity_guard.py", result[1])
         self.assertEqual("moneytrail_test", result[5])
         self.assertEqual("--", result[6])
-        self.assertEqual(job["engine_argv"], result[7:])
+        self.assertEqual("python3", result[7])
+        self.assertIn("moneytrail_stale_idea_lifecycle.py", result[8])
+        self.assertEqual("/workspace", result[10])
+        self.assertEqual("moneytrail_test", result[12])
+        self.assertEqual("--", result[13])
+        self.assertEqual(job["engine_argv"], result[14:])
 
     def test_verify_rejects_name_mismatch(self) -> None:
         config = {

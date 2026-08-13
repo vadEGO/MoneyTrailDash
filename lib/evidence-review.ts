@@ -3,7 +3,17 @@ import type { OpportunityAction } from '@/lib/types'
 export const DAILY_EVIDENCE_REVIEW_LIMIT = 20
 
 export function needsEvidenceReview(row: OpportunityAction) {
-  return !row.evidence_freshness_status || ['stale', 'missing'].includes(row.evidence_freshness_status)
+  return row.actionability_status === 'quarantined'
+    || !row.evidence_freshness_status
+    || ['stale', 'missing'].includes(row.evidence_freshness_status)
+}
+
+export function isCurrentIdea(row: OpportunityAction) {
+  return ['actionable', 'review_required'].includes(row.actionability_status ?? '')
+    && row.evidence_freshness_status === 'fresh'
+    && row.price_freshness_status === 'fresh'
+    && row.levels_freshness_status === 'fresh'
+    && row.review_freshness_status === 'fresh'
 }
 
 export function evidenceReviewPriority(row: OpportunityAction) {
