@@ -40,9 +40,10 @@ written. Its state ledger is atomically maintained at
 This ordering prevents old rows from polluting the funnel before a run and
 rechecks them after an export. A failed engine cannot reactivate anything, and
 the lifecycle exits non-zero when its final Supabase verification fails. After
-the archive cutover it regenerates the existing OpenClaw review queue, so the
-dashboard's review count and the local audit artifact cover only ideas that are
-still inside the re-evaluation window.
+the archive cutover it writes the review clock and actionability metadata from
+the same source, price, and level clocks, so the dashboard review queue covers
+only ideas still inside the re-evaluation window. This avoids interpreting
+Supabase timestamp formatting as source freshness.
 
 `moneytrail_capacity_jobs.json` versions the five canonical producer/publisher job payloads. Verify the live scheduler without changing it:
 

@@ -158,8 +158,10 @@ class SupabaseRest:
 
     def opportunities(self) -> list[dict[str, Any]]:
         select = (
-            "id,symbol,normalized_symbol,action_state,is_tracked,deleted_at,discovered_at,updated_at,"
-            "evidence_last_confirmed_at,evidence_freshness_status,evidence_age_days,evidence_sla_days"
+            "id,symbol,normalized_symbol,direction,action_state,is_tracked,deleted_at,discovered_at,updated_at,"
+            "evidence_last_confirmed_at,evidence_freshness_status,evidence_age_days,evidence_sla_days,"
+            "price_freshness_status,levels_freshness_status,review_last_checked_at,review_freshness_status,"
+            "review_status,actionability_status"
         )
         rows: list[dict[str, Any]] = []
         page_size = 1000
@@ -255,6 +257,37 @@ def lifecycle_event(
     }
 
 
+def review_failures(row: dict[str, Any]) -> list[str]:
+    clocks = {
+        "evidence": str(row.get("evidence_freshness_status") or "missing").lower(),
+        "price": str(row.get("price_freshness_status") or "missing").lower(),
+        "levels": str(row.get("levels_freshness_status") or "missing").lower(),
+    }
+    failures = [name for name, status in clocks.items() if status != "fresh"]
+    if str(row.get("direction") or "").lower() == "mixed":
+        failures.append("direction")
+    return failures
+
+
+def review_event(row: dict[str, Any], *, at: str, failures: list[str]) -> dict[str, Any]:
+    symbol = row.get("normalized_symbol") or row.get("symbol") or "UNKNOWN"
+    return {
+        "id": "openclaw-review:" + hashlib.sha256(str(row["id"]).encode("utf-8")).hexdigest()[:24],
+        "opportunity_id": row["id"],
+        "event_type": "openclaw_trade_idea_review",
+        "action_state": "research",
+        "symbol": symbol,
+        "title": f"{symbol} OpenClaw review",
+        "detail": (
+            f"OpenClaw review completed; refresh required for {', '.join(failures)}."
+            if failures
+            else "OpenClaw review completed; all source, price, and level clocks are current."
+        ),
+        "event_at": at,
+        "sync_batch_id": None,
+    }
+
+
 def apply_lifecycle(
     client: SupabaseRest,
     state_path: Path,
@@ -296,6 +329,28 @@ def apply_lifecycle(
     for row_id in reactivated:
         events.append(lifecycle_event(by_id[row_id], kind="stale-idea-reactivated", at=now_text, reason=decisions[row_id]["reason"]))
 
+    review_groups: dict[tuple[str, str, str, str], list[str]] = {}
+    review_queue_count = 0
+    current_count = 0
+    for row_id, row in by_id.items():
+        if decisions[row_id]["archive"]:
+            continue
+        failures = review_failures(row)
+        if failures:
+            review_queue_count += 1
+            review_status = "pending_revalidation"
+            actionability_status = "quarantined"
+            next_action = "Refresh required for: " + ", ".join(failures) + "."
+            reason = "OpenClaw review completed; the idea remains in the re-evaluation queue."
+        else:
+            current_count += 1
+            review_status = "checked"
+            actionability_status = "review_required"
+            next_action = "All source clocks are current; continue monitoring until the next review cycle."
+            reason = "OpenClaw review completed; the idea is current and research-only."
+        review_groups.setdefault((review_status, actionability_status, next_action, reason), []).append(row_id)
+        events.append(review_event(row, at=now_text, failures=failures))
+
     if not dry_run:
         if new_ids:
             client.patch_ids(new_ids, {"deleted_at": now_text})
@@ -304,6 +359,18 @@ def apply_lifecycle(
         restore_ids = [row_id for row_id in reactivated if by_id[row_id].get("deleted_at")]
         if restore_ids:
             client.patch_ids(restore_ids, {"deleted_at": None})
+        for (review_status, actionability_status, next_action, reason), ids in review_groups.items():
+            client.patch_ids(
+                ids,
+                {
+                    "review_last_checked_at": now_text,
+                    "review_freshness_status": "fresh",
+                    "review_status": review_status,
+                    "review_next_action": next_action,
+                    "actionability_status": actionability_status,
+                    "actionability_reason": reason,
+                },
+            )
         client.upsert_events(events)
 
     archived_state: dict[str, dict[str, Any]] = {}
@@ -327,6 +394,8 @@ def apply_lifecycle(
         "rearchived_after_export": sum(len(ids) for ids in rearchive.values()),
         "reactivated": len(reactivated),
         "visible_after": len(rows) - sum(bool(item["archive"]) for item in decisions.values()),
+        "current_count": current_count,
+        "review_queue_count": review_queue_count,
         "policy": {
             "retire_after_missed_windows": RETIRE_AFTER_MISSED_WINDOWS,
             "missing_evidence_grace_days": MISSING_EVIDENCE_GRACE_DAYS,
@@ -357,17 +426,6 @@ def create_client() -> SupabaseRest:
     return SupabaseRest(url, key)
 
 
-def run_review_queue(workspace: Path) -> int:
-    review_script = workspace / "scripts/review_stale_trade_ideas.py"
-    if not review_script.exists():
-        return 0
-    completed = subprocess.run(
-        [sys.executable, str(review_script), "--limit", "1000"],
-        cwd=workspace,
-    )
-    return completed.returncode
-
-
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", type=Path, required=True)
@@ -386,9 +444,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps({"workflow_name": args.workflow_name, "before": before}, indent=2, sort_keys=True))
         return 0
     if not command:
-        review_returncode = run_review_queue(args.workspace)
-        print(json.dumps({"workflow_name": args.workflow_name, "before": before, "review_returncode": review_returncode}, indent=2, sort_keys=True))
-        return review_returncode
+        print(json.dumps({"workflow_name": args.workflow_name, "before": before}, indent=2, sort_keys=True))
+        return 0
 
     completed = subprocess.run(command, cwd=args.workspace)
     if completed.returncode != 0:
@@ -400,10 +457,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     except Exception as exc:  # fail closed; the prior archive pass remains active
         print(json.dumps({"status": "failed", "workflow_name": args.workflow_name, "error": str(exc)[:500]}, indent=2, sort_keys=True))
         return 1
-    review_returncode = run_review_queue(args.workspace)
-    status = "success" if review_returncode == 0 else "failed"
-    print(json.dumps({"status": status, "workflow_name": args.workflow_name, "before": before, "after": after, "review_returncode": review_returncode}, indent=2, sort_keys=True))
-    return review_returncode
+    print(json.dumps({"status": "success", "workflow_name": args.workflow_name, "before": before, "after": after}, indent=2, sort_keys=True))
+    return 0
 
 
 if __name__ == "__main__":
