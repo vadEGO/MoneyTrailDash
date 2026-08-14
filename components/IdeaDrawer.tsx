@@ -646,20 +646,23 @@ function PriceTile({ idea }: { idea: OpportunityAction }) {
 
   if (health === 'missing' || health === 'inconsistent') {
     const inconsistent = health === 'inconsistent'
+    const clockMissing = inconsistent && idea.current_price != null && !idea.price_as_of
     return (
       <div
         className={`rounded border px-3 py-1.5 text-center ${
           inconsistent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
         }`}
         title={inconsistent
-          ? 'A dated quote clock exists, but its numeric value was not published. The producer contract needs repair.'
+          ? clockMissing
+            ? 'A numeric market price exists without an observation clock. It is shown for context only and is not fresh or actionable.'
+            : 'A dated quote clock exists, but its numeric value was not published. The producer contract needs repair.'
           : hasNoPlan(idea)
             ? 'No dated market quote is available. Entry, stop and target levels are also unavailable.'
             : 'No dated market quote is available.'}
       >
         <div className={`text-2xs ${inconsistent ? 'text-status-red' : 'text-status-amber'}`}>MARKET PRICE</div>
         <div className={`mt-0.5 font-mono text-sm font-bold leading-none ${inconsistent ? 'text-status-red' : 'text-status-amber'}`}>
-          {inconsistent ? 'VALUE MISSING' : 'NO QUOTE'}
+          {inconsistent ? (clockMissing ? `${money(idea.current_price)} · CLOCK MISSING` : 'VALUE MISSING') : 'NO QUOTE'}
         </div>
       </div>
     )
