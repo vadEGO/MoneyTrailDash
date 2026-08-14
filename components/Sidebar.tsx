@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react'
 const NAV = [
   { href: '/',          label: 'FUNNEL',    icon: IdeasIcon },
   { href: '/portfolio', label: 'PORTFOLIO', icon: PortfolioIcon },
+  { href: '/paper',     label: 'PAPER',     icon: PortfolioIcon },
   { href: '/macro',     label: 'MACRO',     icon: MacroIcon },
   { href: '/research',  label: 'RESEARCH',  icon: LibraryIcon },
   { href: '/health',    label: 'HEALTH',    icon: HealthIcon },
