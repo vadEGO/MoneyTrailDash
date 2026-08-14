@@ -71,3 +71,18 @@ the declaration with:
 python3 MoneyTrailDash/ops/openclaw/install_moneytrail_monthly_archive_job.py
 python3 MoneyTrailDash/ops/openclaw/install_moneytrail_monthly_archive_job.py --apply
 ```
+
+`install_moneytrail_price_contract.py` versions the narrow runtime correction
+that keeps the current market quote independent from entry, stop, and target
+levels during ticker consolidation. Verify the installed exporter without
+changing it, or apply the exact idempotent transform after its Git commit has
+passed review:
+
+```bash
+python3 MoneyTrailDash/ops/openclaw/install_moneytrail_price_contract.py
+python3 MoneyTrailDash/ops/openclaw/install_moneytrail_price_contract.py --apply
+```
+
+The installer fails closed if its exact source anchor has drifted. A successful
+re-export may advance `price_as_of` only when a newer market observation exists;
+deployment or re-export time never substitutes for quote time.

@@ -636,42 +636,52 @@ export default function IdeaDrawer({ selection, onClose, onSelectRow }: Props) {
 
 // ── One view on the ticker, selectable to bring it into focus ─────────────────
 
-// The price tile doubles as the feed indicator: the levels below it are derived
-// from this number, so its absence or age decides whether the plan means anything.
+// Market price is independent from entry/stop/target levels. The tile exposes
+// the observation clock and provenance so an export timestamp cannot masquerade
+// as a fresh quote.
 function PriceTile({ idea }: { idea: OpportunityAction }) {
   const health = priceHealth(idea)
+  const age = fmtPriceAge(priceAgeDays(idea))
+  const source = idea.price_source?.replace(/^yahoo:/, 'Yahoo · ').replace(/^kraken:/, 'Kraken · ')
 
-  if (health === 'missing') {
+  if (health === 'missing' || health === 'inconsistent') {
+    const inconsistent = health === 'inconsistent'
     return (
       <div
-        className="rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-center"
-        title={hasNoPlan(idea)
-          ? 'The exporter wrote no price for this symbol, so no entry, stop or target could be derived.'
-          : 'The exporter wrote no price for this symbol.'}
+        className={`rounded border px-3 py-1.5 text-center ${
+          inconsistent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
+        }`}
+        title={inconsistent
+          ? 'A dated quote clock exists, but its numeric value was not published. The producer contract needs repair.'
+          : hasNoPlan(idea)
+            ? 'No dated market quote is available. Entry, stop and target levels are also unavailable.'
+            : 'No dated market quote is available.'}
       >
-        <div className="text-2xs text-status-amber">PRICE</div>
-        <div className="mt-0.5 font-mono text-sm font-bold leading-none text-status-amber">
-          NO FEED
+        <div className={`text-2xs ${inconsistent ? 'text-status-red' : 'text-status-amber'}`}>MARKET PRICE</div>
+        <div className={`mt-0.5 font-mono text-sm font-bold leading-none ${inconsistent ? 'text-status-red' : 'text-status-amber'}`}>
+          {inconsistent ? 'VALUE MISSING' : 'NO QUOTE'}
         </div>
       </div>
     )
   }
 
-  const age = fmtPriceAge(priceAgeDays(idea))
   const stale = health === 'stale'
+  const aging = health === 'aging'
+  const attention = stale || aging
   return (
     <div
       className={`rounded border px-3 py-1.5 text-center ${
-        stale ? 'border-amber-200 bg-amber-50' : 'border-border bg-surface'
+        attention ? 'border-amber-200 bg-amber-50' : 'border-border bg-surface'
       }`}
-      title={stale ? `This quote was written ${age} ago.` : undefined}
+      title={idea.price_freshness_reason ?? `Observed ${age} ago${source ? ` via ${source}` : ''}.`}
     >
-      <div className={`text-2xs ${stale ? 'text-status-amber' : 'text-ink-3'}`}>
-        {stale ? `PRICE · ${age} OLD` : 'PRICE'}
+      <div className={`text-2xs ${attention ? 'text-status-amber' : 'text-ink-3'}`}>
+        MARKET PRICE · {age}
       </div>
-      <div className={`mt-0.5 font-mono text-sm font-bold leading-none ${stale ? 'text-status-amber' : 'text-ink'}`}>
+      <div className={`mt-0.5 font-mono text-sm font-bold leading-none ${attention ? 'text-status-amber' : 'text-ink'}`}>
         {money(idea.current_price)}
       </div>
+      {source && <div className="mt-1 text-[10px] leading-none text-ink-3">{source}</div>}
     </div>
   )
 }
