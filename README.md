@@ -206,19 +206,24 @@ Authentication remains mandatory. This is research-only software.
 
 ## Verified operating snapshot
 
-Last verified: 2026-08-14 12:34 AEST, after the effective-price rebuild.
+Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
 
-- GitHub `vadEGO/MoneyTrailDash`: effective-price PR `#17` merged as `3db9f40`.
-- Vercel production verification follows the commit-matched deployment; the
-  previous rollback artifact is `dpl_8gHMmTd6yemVapQADF56rVtspr9g` at `8b0ef4a`.
+- GitHub `vadEGO/MoneyTrailDash`: price PRs `#17` and `#18` merged; the verified
+  price-code commit is `ac62bbe` (documentation-only commits may follow).
+- Vercel production: GitHub deployment `5899505412`, exact `ac62bbe`, immutable
+  URL `money-trail-dash-a305x5erz-vaddys-projects.vercel.app`. Rollback remains
+  `dpl_8gHMmTd6yemVapQADF56rVtspr9g` at `8b0ef4a`.
 - Supabase production: `iinzcnqwhltxjilpkojr`, Auth/REST reachable.
 - Opportunities: 1,822 total; 72 active, 1,750 soft archived, 0 closed.
 - Public action board: 73 rows; 63 numeric prices, up from 16; 60 fresh quote
   clocks, one stale, seven missing, and five legacy/null statuses. Two legacy
   rows have a numeric value without a quote clock and are explicitly marked
   inconsistent rather than fresh.
-- Price rebuild/export batch `faf928f3-2209-442c-b8c2-bf5c093d9428` completed
-  at `2026-08-14T02:32:33Z`; latest quote observation is `2026-08-14T00:00:00Z`.
+- Healthy price rerun/export batch `17e33daf-80e7-4ec9-ba9e-028d3adeebee`
+  completed at `2026-08-14T02:44:50Z`; latest quote observation remains
+  `2026-08-14T00:00:00Z`, proving re-export did not refresh the quote clock.
+- RAG context is verified against LanceDB table version 197: all 54 expected
+  InvestAnswers files are indexed and the 12-asset hybrid context is current.
 - Circuit closed, DNS healthy, export queue empty, about 88 GiB disk free.
 - Scores remain dated `2026-08-03`; holdings remain unconfirmed since
   `2026-07-05`; public portfolio actions remain empty.
@@ -228,9 +233,6 @@ Last verified: 2026-08-14 12:34 AEST, after the effective-price rebuild.
 - Reconcile scheduler-aware health: feeds retains failed scheduler state while a
   later successful export can make the compact healthcheck appear green.
 - Fix the RAG-context dependency ordering for the 06:40 feeds job.
-- Reconcile the RAG retrieval context with the current LanceDB table. The price
-  export succeeded, but this downstream review-graph mismatch made the wrapper
-  report failure and required a lifecycle recovery pass.
 - Backfill insufficient BoE 2Y/10Y curve history.
 - Restore published feed-item freshness and stale canonical scores.
 - Confirm holdings from broker/wallet records before portfolio actionability.
@@ -245,6 +247,8 @@ Last verified: 2026-08-14 12:34 AEST, after the effective-price rebuild.
   to 63 without advancing quote clocks on deployment or re-export alone.
 - 2026-08-14: README became the canonical system bible and session-start
   checklist; clock/value disagreement is now explicit and non-actionable.
+- 2026-08-14: Reconciled the RAG retrieval context to LanceDB version 197 and
+  proved the complete guarded valuation/export/review/lifecycle workflow green.
 - 2026-08-13: Added reversible active/soft-archived/closed lifecycle and monthly
   first-Sunday review; no hard deletion.
 - 2026-08-13: Soft-archived stale untracked ideas while preserving canonical
