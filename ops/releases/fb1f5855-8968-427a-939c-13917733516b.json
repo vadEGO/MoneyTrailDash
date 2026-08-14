@@ -20,7 +20,7 @@
   "git": {
     "branch": "codex/paper-aggressive-v1-20260814",
     "merged_commit": null,
-    "pull_request": null,
+    "pull_request": 20,
     "repository": "vadEGO/MoneyTrailDash",
     "tested_commit": "8b94fa24656e4d4851dc23c5710e6844df6e96cb"
   },
@@ -38,7 +38,7 @@
     "vercel_deployment_id": null
   },
   "schema_version": 1,
-  "status": "review_pending",
+  "status": "preview_pending",
   "supabase": {
     "data_verified": false,
     "migrations": [
