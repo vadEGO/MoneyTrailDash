@@ -94,7 +94,8 @@ level owner must never erase a fresh market quote. The dashboard displays:
 - Fresh: value, observation age, and source.
 - Aging/stale: value retained for context, visibly qualified in amber.
 - Missing: `NO QUOTE`.
-- Clock/value disagreement: `VALUE MISSING`, treated as a producer defect.
+- Clock/value disagreement: the available side is retained for diagnosis and
+  labelled `CLOCK MISSING` or `VALUE MISSING`; it is never treated as fresh.
 
 No stale or missing quote can make an idea actionable. Entry, stop, target, and
 risk/reward remain governed by their separate level/evidence clocks.
@@ -205,16 +206,19 @@ Authentication remains mandatory. This is research-only software.
 
 ## Verified operating snapshot
 
-Last verified: 2026-08-14 11:32 AEST, before the effective-price release.
+Last verified: 2026-08-14 12:34 AEST, after the effective-price rebuild.
 
-- GitHub `vadEGO/MoneyTrailDash`: remote `main` at `8b0ef4a`; no open PRs.
-- Vercel production: `dpl_8gHMmTd6yemVapQADF56rVtspr9g`, exact `8b0ef4a`.
+- GitHub `vadEGO/MoneyTrailDash`: effective-price PR `#17` merged as `3db9f40`.
+- Vercel production verification follows the commit-matched deployment; the
+  previous rollback artifact is `dpl_8gHMmTd6yemVapQADF56rVtspr9g` at `8b0ef4a`.
 - Supabase production: `iinzcnqwhltxjilpkojr`, Auth/REST reachable.
 - Opportunities: 1,822 total; 72 active, 1,750 soft archived, 0 closed.
-- Public action board: 73 rows; 60 fresh price clocks, one aging, seven missing,
-  five legacy/null statuses; only 16 rows exposed a numeric `current_price` due
-  to the consolidation defect addressed by the current release.
-- Latest successful decision export: `2026-08-14T00:22:44Z`.
+- Public action board: 73 rows; 63 numeric prices, up from 16; 60 fresh quote
+  clocks, one stale, seven missing, and five legacy/null statuses. Two legacy
+  rows have a numeric value without a quote clock and are explicitly marked
+  inconsistent rather than fresh.
+- Price rebuild/export batch `faf928f3-2209-442c-b8c2-bf5c093d9428` completed
+  at `2026-08-14T02:32:33Z`; latest quote observation is `2026-08-14T00:00:00Z`.
 - Circuit closed, DNS healthy, export queue empty, about 88 GiB disk free.
 - Scores remain dated `2026-08-03`; holdings remain unconfirmed since
   `2026-07-05`; public portfolio actions remain empty.
@@ -224,6 +228,9 @@ Last verified: 2026-08-14 11:32 AEST, before the effective-price release.
 - Reconcile scheduler-aware health: feeds retains failed scheduler state while a
   later successful export can make the compact healthcheck appear green.
 - Fix the RAG-context dependency ordering for the 06:40 feeds job.
+- Reconcile the RAG retrieval context with the current LanceDB table. The price
+  export succeeded, but this downstream review-graph mismatch made the wrapper
+  report failure and required a lifecycle recovery pass.
 - Backfill insufficient BoE 2Y/10Y curve history.
 - Restore published feed-item freshness and stale canonical scores.
 - Confirm holdings from broker/wallet records before portfolio actionability.
@@ -233,8 +240,11 @@ Last verified: 2026-08-14 11:32 AEST, before the effective-price release.
 
 ## Recent changes
 
-- 2026-08-14: Effective market-price contract and README-as-system-bible release
-  in progress.
+- 2026-08-14: Effective market-price contract shipped in PR `#17`; rebuilt all
+  259 canonical opportunity rows and increased visible numeric prices from 16
+  to 63 without advancing quote clocks on deployment or re-export alone.
+- 2026-08-14: README became the canonical system bible and session-start
+  checklist; clock/value disagreement is now explicit and non-actionable.
 - 2026-08-13: Added reversible active/soft-archived/closed lifecycle and monthly
   first-Sunday review; no hard deletion.
 - 2026-08-13: Soft-archived stale untracked ideas while preserving canonical
