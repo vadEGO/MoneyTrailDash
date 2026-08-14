@@ -1,0 +1,59 @@
+{
+  "candidate": {
+    "gate_decision": "ship",
+    "gate_score": 80.5,
+    "id": "paper-aggressive-v1",
+    "title": "Aggressive 10k paper-trading projection"
+  },
+  "freshness": {
+    "after": {},
+    "baseline": {
+      "captured_at": "2026-08-14T11:44:43Z",
+      "eligible_trade_setups": 0,
+      "paper_account_nav_usd": 10000,
+      "paper_open_positions": 0,
+      "paper_pending_orders": 0,
+      "remote_projection_schema": "absent_http_404"
+    },
+    "regressions": []
+  },
+  "git": {
+    "branch": "codex/paper-aggressive-v1-20260814",
+    "merged_commit": null,
+    "pull_request": null,
+    "repository": "vadEGO/MoneyTrailDash",
+    "tested_commit": "8b94fa24656e4d4851dc23c5710e6844df6e96cb"
+  },
+  "openclaw": {
+    "automation_policy_version": 1,
+    "entrypoint": "ops/release/moneytrail_release.py",
+    "manual_run_id": "41c503ea10eda6cb943fa490427b116b",
+    "scheduled_job_id": "d8cfe927-b6f6-457b-8429-0b8f4ca0a15c",
+    "workflow_name": "MoneyTrail Aggressive Paper Trading"
+  },
+  "release_id": "fb1f5855-8968-427a-939c-13917733516b",
+  "rollback": {
+    "data_contract_version": null,
+    "git_commit": null,
+    "vercel_deployment_id": null
+  },
+  "schema_version": 1,
+  "status": "review_pending",
+  "supabase": {
+    "data_verified": false,
+    "migrations": [
+      "supabase/migrations/20260814113500_paper_trading.sql"
+    ],
+    "preview_project_ref": null,
+    "production_project_ref": "iinzcnqwhltxjilpkojr",
+    "security_verified": false
+  },
+  "vercel": {
+    "preview_commit": null,
+    "preview_deployment_id": null,
+    "production_commit": null,
+    "production_deployment_id": null,
+    "project_id": "prj_pUd6DeaIF0zedi6D6HOIERhIEgfj",
+    "status": null
+  }
+}
