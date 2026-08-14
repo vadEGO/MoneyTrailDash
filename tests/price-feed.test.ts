@@ -17,31 +17,39 @@ function row(over: Partial<OpportunityAction>): OpportunityAction {
   return {
     id: 'x', normalized_symbol: 'X', symbol: 'X', asset_class: 'equity',
     current_price: 100, entry_min: 98, entry_max: 100, stop_loss: 90, take_profit_1: 120,
-    ideal_entry: null, do_not_chase_above: null, updated_at: daysAgo(1),
+    ideal_entry: null, do_not_chase_above: null, updated_at: daysAgo(30),
+    price_as_of: daysAgo(1), price_age_hours: 24, price_freshness_status: 'fresh',
     ...over,
   } as OpportunityAction
 }
 
 // ── Health classification ─────────────────────────────────────────────────────
 
-assert.equal(priceHealth(row({}), NOW), 'ok')
-assert.equal(priceHealth(row({ current_price: null }), NOW), 'missing')
+assert.equal(priceHealth(row({}), NOW), 'fresh')
+assert.equal(priceHealth(row({ current_price: null, price_freshness_status: 'missing' }), NOW), 'missing')
+assert.equal(priceHealth(row({ current_price: null, price_freshness_status: 'fresh' }), NOW), 'inconsistent')
 assert.equal(
-  priceHealth(row({ updated_at: daysAgo(STALE_PRICE_DAYS + 1) }), NOW),
+  priceHealth(row({ price_as_of: daysAgo(STALE_PRICE_DAYS + 1), price_age_hours: null, price_freshness_status: null }), NOW),
   'stale',
 )
 // Exactly on the threshold is still fine — only past it counts as stale.
-assert.equal(priceHealth(row({ updated_at: daysAgo(STALE_PRICE_DAYS) }), NOW), 'ok')
+assert.equal(priceHealth(row({ price_as_of: daysAgo(STALE_PRICE_DAYS), price_age_hours: null, price_freshness_status: null }), NOW), 'fresh')
 
 // A missing price outranks staleness: there is no verdict to qualify.
 assert.equal(
-  priceHealth(row({ current_price: null, updated_at: daysAgo(60) }), NOW),
+  priceHealth(row({ current_price: null, price_freshness_status: 'missing' }), NOW),
   'missing',
 )
 
 // A row with no timestamp cannot be aged, so it is not accused of being stale.
-assert.equal(priceAgeDays(row({ updated_at: null }), NOW), null)
-assert.equal(priceHealth(row({ updated_at: null }), NOW), 'ok')
+assert.equal(priceAgeDays(row({ price_as_of: null, price_age_hours: null }), NOW), null)
+assert.equal(priceHealth(row({ price_as_of: null, price_age_hours: null, price_freshness_status: null }), NOW), 'fresh')
+
+// Re-exporting a row does not refresh a quote: the dedicated clock wins.
+assert.equal(
+  priceHealth(row({ updated_at: daysAgo(0), price_as_of: daysAgo(10), price_age_hours: 240, price_freshness_status: 'stale' }), NOW),
+  'stale',
+)
 
 // ── The plan depends on the price ─────────────────────────────────────────────
 
@@ -67,12 +75,13 @@ assert.equal(
 // crypto abandoned six weeks ago with half its rows never priced.
 const board: OpportunityAction[] = [
   ...Array.from({ length: 4 }, (_, i) =>
-    row({ normalized_symbol: `EQ${i}`, asset_class: 'equity', updated_at: daysAgo(2.2) })),
+    row({ normalized_symbol: `EQ${i}`, asset_class: 'equity', price_as_of: daysAgo(2.2), price_age_hours: 52.8 })),
   ...['BTC', 'ETH', 'SOL'].map(s =>
-    row({ normalized_symbol: s, asset_class: 'crypto', updated_at: daysAgo(43.9) })),
+    row({ normalized_symbol: s, asset_class: 'crypto', price_as_of: daysAgo(43.9), price_age_hours: 1053.6, price_freshness_status: 'stale' })),
   ...['HYPE', 'JUP'].map(s =>
     row({
-      normalized_symbol: s, asset_class: 'crypto', updated_at: daysAgo(43.9),
+      normalized_symbol: s, asset_class: 'crypto', price_as_of: daysAgo(43.9), price_age_hours: 1053.6,
+      price_freshness_status: 'missing',
       current_price: null, entry_min: null, entry_max: null, stop_loss: null, take_profit_1: null,
     })),
 ]

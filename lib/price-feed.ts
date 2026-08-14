@@ -3,9 +3,8 @@ import type { OpportunityAction } from '@/lib/types'
 /**
  * Price feed health for the funnel.
  *
- * The action board carries no price_updated_at of its own — current_price is
- * written by the exporter as part of the row, so the row's updated_at is the age
- * of the quote.
+ * Price observation time is independent from source, analysis, export, and
+ * trade-level clocks. Re-exporting a row must never make a quote look newer.
  *
  * This is more than cosmetic. Entry, stop and target are derived from
  * current_price (entry_max lands on the price itself, entry_min on price x 0.985),
@@ -18,18 +17,29 @@ import type { OpportunityAction } from '@/lib/types'
 // means that class's feed has stopped rather than merely lagged.
 export const STALE_PRICE_DAYS = 7
 
-export type PriceHealth = 'ok' | 'stale' | 'missing'
+export type PriceHealth = 'fresh' | 'aging' | 'stale' | 'missing' | 'inconsistent'
 
 export function priceAgeDays(row: OpportunityAction, now = Date.now()): number | null {
-  if (!row.updated_at) return null
-  const ms = now - new Date(row.updated_at).getTime()
-  return Number.isFinite(ms) ? ms / 86_400_000 : null
+  if (row.price_as_of) {
+    const ms = now - new Date(row.price_as_of).getTime()
+    return Number.isFinite(ms) ? Math.max(0, ms / 86_400_000) : null
+  }
+  if (row.price_age_hours != null && Number.isFinite(Number(row.price_age_hours))) {
+    return Math.max(0, Number(row.price_age_hours)) / 24
+  }
+  return null
 }
 
 export function priceHealth(row: OpportunityAction, now = Date.now()): PriceHealth {
-  if (row.current_price == null) return 'missing'
+  const contractStatus = row.price_freshness_status
+  if (row.current_price == null) {
+    return contractStatus === 'fresh' || contractStatus === 'aging' || contractStatus === 'stale'
+      ? 'inconsistent'
+      : 'missing'
+  }
+  if (contractStatus) return contractStatus
   const age = priceAgeDays(row, now)
-  return age != null && age > STALE_PRICE_DAYS ? 'stale' : 'ok'
+  return age != null && age > STALE_PRICE_DAYS ? 'stale' : 'fresh'
 }
 
 /** With no price there is nothing to derive the levels from, so the row cannot be traded. */
@@ -42,7 +52,7 @@ export function hasNoPlan(row: OpportunityAction): boolean {
 export interface ClassFeed {
   assetClass: string
   ideas: number
-  /** Age of the most recent write for this class — when the exporter last touched it. */
+  /** Age of the newest market observation for this class, never export age. */
   lastWriteDays: number | null
   missing: number
   unactionable: number
@@ -77,7 +87,7 @@ export function summarisePriceFeed(rows: OpportunityAction[], now = Date.now()):
         lastWriteDays,
         missing: list.filter(r => r.current_price == null).length,
         unactionable: list.filter(r => r.current_price == null && hasNoPlan(r)).length,
-        stale: lastWriteDays != null && lastWriteDays > STALE_PRICE_DAYS,
+        stale: list.every(r => ['stale', 'missing', 'inconsistent'].includes(priceHealth(r, now))),
       }
     })
     // Most neglected class first — that is the one worth acting on.

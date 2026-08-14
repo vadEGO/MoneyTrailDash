@@ -405,6 +405,7 @@ export interface OpportunityAction {
   price_age_hours?: number | null
   price_freshness_status?: 'fresh' | 'aging' | 'stale' | 'missing' | null
   price_source?: string | null
+  price_freshness_reason?: string | null
   levels_last_revalidated_at?: string | null
   levels_review_due_at?: string | null
   levels_age_days?: number | null
