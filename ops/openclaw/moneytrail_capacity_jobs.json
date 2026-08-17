@@ -6,7 +6,7 @@
       "id": "d0bbcf44-fdcc-4f9b-bb3e-aab8572eb232",
       "name": "MoneyTrail Feeds Refresh",
       "workflow_name": "moneytrail_feeds_refresh",
-      "engine_argv": ["python3", "scripts/run_moneytrail_engine.py", "--mode", "frequent", "--stages", "sources,export", "--source-groups", "feeds", "--export-sections", "feeds", "--require-stage-success", "--require-export", "--workflow-name", "moneytrail_feeds_refresh"]
+      "engine_argv": ["python3", "MoneyTrailDash/ops/openclaw/run_moneytrail_feeds_refresh.py", "--workspace", "/Users/vaddylandbot/.openclaw/workspace", "--workflow-name", "moneytrail_feeds_refresh"]
     },
     {
       "id": "fe3e9647-4bc8-4424-8d50-0abc4907821d",
