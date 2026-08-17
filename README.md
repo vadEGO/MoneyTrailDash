@@ -258,3 +258,22 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
 
 MoneyTrail supports research and review. It does not place orders, size trades,
 move funds, or claim that unconfirmed holdings or stale quotes are executable.
+
+## Aggressive paper-trading projection
+
+The `paper-aggressive-v1` account is a deterministic local simulation, funded
+with a nominal USD 10,000 balance and deliberately configured for high risk
+without leverage. It is long-only, uses daily bars and pre-entered stop/target
+levels, and can never reach a broker, exchange, wallet, or live order API.
+
+- The canonical, append-only ledger is local in
+  `FollowDaMO/data/moneytrail.sqlite`; OpenClaw runs the daily cycle.
+- The dashboard reads only the four public-safe projection tables in Supabase:
+  `paper_account_snapshots`, `paper_positions`, `paper_trades`, and
+  `paper_events`, rendered at `/paper`.
+- The remote schema is defined in
+  `supabase/migrations/20260814113500_paper_trading.sql`. Apply it before
+  enabling the cron export; until then, the local engine remains authoritative
+  and export deliberately reports a blocked schema instead of dropping data.
+- The execution contract and release commands are in
+  `FollowDaMO/PAPER_TRADING_RUNBOOK.md`.
