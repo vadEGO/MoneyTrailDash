@@ -7,6 +7,7 @@ import {
   getPersonaPositions,
   getResearchLibrary,
   getTheses,
+  getThesisQuality,
   pct,
 } from '@/lib/openclaw'
 
@@ -16,9 +17,10 @@ import {
 // belief register, and the public research record. Per-idea research is reached
 // from the IdeaDrawer; this page is the shared / cross-idea view.
 export default async function ResearchPage() {
-  const [runs, theses, library] = await Promise.all([
+  const [runs, theses, thesisQuality, library] = await Promise.all([
     getCouncilRuns(6),
     getTheses(20),
+    getThesisQuality(30),
     getResearchLibrary(60),
   ])
   const current = runs[0]
@@ -36,6 +38,70 @@ export default async function ResearchPage() {
           </span>
         ) : undefined}
       />
+
+      {/* ── Thesis quality register ──────────────────────────────────────── */}
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-2xs font-semibold tracking-widest text-ink-3 uppercase">Thesis Quality</h2>
+            <p className="mt-1 text-xs text-ink-3">Case completeness and evidence clocks. This is not a trade score or execution permission.</p>
+          </div>
+          {thesisQuality.length > 0 && <span className="text-2xs font-mono text-ink-3">{thesisQuality.length} highest-quality records</span>}
+        </div>
+        {thesisQuality.length === 0 ? (
+          <Card><div className="px-6 py-10 text-center text-sm text-ink-3">No thesis-quality records synced yet</div></Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {thesisQuality.map(thesis => (
+              <Card key={thesis.id}>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-bold text-ink">{thesis.symbol}</span>
+                        <StatusChip label={thesis.status} variant={qualityVariant(thesis.status)} />
+                        <StatusChip label={thesis.evidence_status} variant={freshnessVariant(thesis.evidence_status)} />
+                      </div>
+                      <h3 className="mt-2 text-md font-semibold text-ink">{thesis.title}</h3>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-mono text-lg font-bold text-ink">{thesis.quality_score.toFixed(0)}</div>
+                      <div className="text-2xs text-ink-3">quality / {pct(thesis.confidence)} confidence</div>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-ink-2 leading-relaxed">{thesis.claim}</p>
+                  <p className="mt-2 text-xs text-ink-3 leading-relaxed"><strong className="text-ink-2">Mechanism:</strong> {thesis.mechanism}</p>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-2xs font-mono text-ink-3">
+                    <div className="rounded bg-surface-dim p-2">sources {thesis.source_count}</div>
+                    <div className="rounded bg-surface-dim p-2">confirming {thesis.confirming_source_count}</div>
+                    <div className="rounded bg-surface-dim p-2">contradicting {thesis.contradicting_evidence_count}</div>
+                  </div>
+                  {thesis.counter_thesis && (
+                    <div className="mt-3 rounded border border-border bg-surface-dim p-3 text-xs text-ink-3">
+                      <strong className="text-ink-2">Counter-thesis:</strong> {thesis.counter_thesis}
+                    </div>
+                  )}
+                  {(thesis.unknowns ?? []).length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-2xs font-semibold tracking-widest text-ink-3 uppercase mb-1">Open gaps</div>
+                      <ul className="text-xs text-ink-3 space-y-1">
+                        {(thesis.unknowns ?? []).slice(0, 3).map(item => <li key={item}>◇ {item}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-border text-xs text-ink-2">
+                    <strong className="text-ink">Next test:</strong> {thesis.next_test}
+                    {thesis.next_test_due_at && <span className="ml-2 text-2xs font-mono text-ink-3">due {thesis.next_test_due_at.slice(0, 10)}</span>}
+                  </div>
+                  {(thesis.invalidation_conditions ?? []).length > 0 && (
+                    <div className="mt-2 text-2xs text-ink-3">Kill criteria: {(thesis.invalidation_conditions ?? []).slice(0, 2).join(' · ')}</div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* ── Latest council consensus ──────────────────────────────────────── */}
       <section className="space-y-3">
@@ -169,5 +235,20 @@ function libVariant(type: string): 'red' | 'amber' | 'green' | 'blue' | 'purple'
   if (type === 'insight') return 'blue'
   if (type === 'evidence_pack') return 'green'
   if (type.includes('report')) return 'purple'
+  return 'grey'
+}
+
+function qualityVariant(status: string): 'red' | 'amber' | 'green' | 'blue' | 'purple' | 'grey' {
+  if (status === 'validated') return 'green'
+  if (status === 'watch') return 'blue'
+  if (status === 'quarantine') return 'red'
+  if (status === 'research') return 'amber'
+  return 'grey'
+}
+
+function freshnessVariant(status: string): 'red' | 'amber' | 'green' | 'blue' | 'purple' | 'grey' {
+  if (status === 'fresh') return 'green'
+  if (status === 'aging') return 'amber'
+  if (status === 'stale') return 'red'
   return 'grey'
 }

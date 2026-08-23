@@ -26,6 +26,7 @@ import type {
   PublicOpportunity,
   PublicReport,
   PublicThesis,
+  ThesisQualityRow,
   ResearchLibraryRow,
   RvTradeEvent,
   RvTradeIdea,
@@ -93,6 +94,19 @@ export async function getTheses(limit = 20): Promise<PublicThesis[]> {
       .from('public_thesis_register')
       .select('*')
       .order('confidence', { ascending: false, nullsFirst: false })
+      .limit(limit)
+    return data ?? []
+  })
+}
+
+export async function getThesisQuality(limit = 30): Promise<ThesisQualityRow[]> {
+  if (!hasSupabaseConfig()) return []
+  return cached(['thesis_quality', String(limit)], async () => {
+    const { data } = await anonClient()
+      .from('public_thesis_quality')
+      .select('*')
+      .order('quality_score', { ascending: false, nullsFirst: false })
+      .order('updated_at', { ascending: false, nullsFirst: false })
       .limit(limit)
     return data ?? []
   })
