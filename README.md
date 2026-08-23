@@ -259,14 +259,17 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   `quarantine` records. Its evidence clocks are 41 fresh, 23 aging, 428
   stale, and 182 missing. Stale/missing state is intentionally visible and
   non-actionable.
-- PR `#22` (`ff7ddac`) adds the Supabase contract and `/research` surface. The
-  exact commit passed the dashboard unit/macro tests, production build, and
-  Vercel preview deployment (`6wZbVSXUh5m38a9R869fCb2MfM1k`).
+- PR `#22` merged as `7073709` and adds the Supabase contract and `/research`
+  surface. The tested branch passed the dashboard unit/macro tests and
+  production build; production is now served by Vercel deployment
+  `dpl_6ou1MFaA547HnX7osBoMWdFhrvLz` from the merged `main` commit.
 - The reviewed migration is
   `supabase/migrations/20260823060000_thesis_quality_contract.sql`. It creates
   the RLS-protected base table and `public_thesis_quality` security-invoker
-  view. It is not marked production-applied until an isolated Supabase
-  preview has been verified.
+  view. It is applied in production as migration
+  `20260823103049_thesis_quality_contract_20260823`; both the base table and
+  public view contain 674 rows. Per the direct-production release decision,
+  no Supabase preview branch was created.
 - LanceDB retrieval context is verified against table version 325. The review
   graph now handles one bounded context race and locks the corpus during
   write-back.
@@ -274,14 +277,17 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   completed successfully at `2026-08-23T05:48:05Z`: export status is fresh,
   the review graph applied 445 records across all six sections, scheduler
   health is green, and the stale-idea lifecycle reports 0 actionable ideas.
+- The production analysis export published the thesis-quality projection after
+  migration with batch `d4cb6fd1-304d-41c6-8b19-976932419778`.
+  `/research` is live and authentication-gated; unauthenticated requests
+  redirect to `/login` as expected.
 
 ## Known risks and next work
 
-- Promote the thesis-quality migration through an isolated Supabase preview,
-  then apply it in production and run the governed MoneyTrail export/review
-  workflow. This host currently lacks the preview project credentials/CLI
-  token needed to perform that migration safely.
-- The bounded RAG-context race repair is in PR `#22`; verify the next scheduled
+- Keep the production thesis view synchronized through the scheduled analysis
+  export and monitor its evidence clocks; stale/missing thesis evidence remains
+  intentionally visible and non-actionable.
+- The bounded RAG-context race repair landed in PR `#22`; verify the next scheduled
   export/review cycle is green after promotion.
 - Backfill insufficient BoE 2Y/10Y curve history.
 - Keep the production surface fail-closed until evidence, price, levels, and
@@ -302,6 +308,10 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   contradiction handling, public-safe Supabase read model, and a dashboard
   research surface showing counter-thesis, gaps, kill criteria, and next tests.
   Quality remains separate from actionability and execution.
+
+- 2026-08-23: Promoted thesis quality to production: applied the Supabase
+  contract, published 674 rows, merged PR `#22`, and verified the Vercel
+  production deployment and authentication-gated `/research` route.
 
 - 2026-08-21: Hardened the FollowDaMO evidence clock and MoneyTrail mapping;
   collection-time masquerading is blocked, stale/undated setups are demoted
