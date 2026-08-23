@@ -197,6 +197,7 @@ an export snapshot when canonical source data is available.
 - `/decisions`: decision ledger with horizon, review, invalidation, and outcomes.
 - `/filings`: institutional filing context.
 - `/theses`: thesis register, confidence, and research requests.
+- `/research`: evidence-aware thesis quality, counter-thesis, open gaps, kill criteria, and next tests.
 - `/council`: council reasoning and disagreements.
 - `/library`: public-safe research/evidence library.
 - `/macro`: regional macro model, source coverage, and catalysts.
@@ -249,11 +250,37 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   the successful retry: one was blocked by a foreign-key dependency and one by
   a repaired bulk-schema mismatch. The live export queue is empty.
 
+### Thesis quality v1 release candidate — 2026-08-23
+
+- Local FollowDaMO proof completed all 16 stages successfully at
+  `2026-08-23T05:40:04Z`: 5,180 raw records, 546 signals, 20 active
+  tradeability rows, 876 research packs, and 674 thesis-quality records.
+- The thesis register currently contains 64 `watch`, 597 `research`, and 13
+  `quarantine` records. Its evidence clocks are 41 fresh, 23 aging, 428
+  stale, and 182 missing. Stale/missing state is intentionally visible and
+  non-actionable.
+- PR `#22` (`1c3d432`) adds the Supabase contract and `/research` surface. The
+  exact commit passed the dashboard unit/macro tests, production build, and
+  Vercel preview deployment.
+- The reviewed migration is
+  `supabase/migrations/20260823060000_thesis_quality_contract.sql`. It creates
+  the RLS-protected base table and `public_thesis_quality` security-invoker
+  view. It is not marked production-applied until an isolated Supabase
+  preview has been verified.
+- LanceDB retrieval context is verified against table version 325. The review
+  graph now handles one bounded context race and locks the corpus during
+  write-back.
+
 ## Known risks and next work
 
 - Reconcile scheduler-aware health: feeds retains failed scheduler state while a
   later successful export can make the compact healthcheck appear green.
-- Fix the RAG-context dependency ordering for the 06:40 feeds job.
+- Promote the thesis-quality migration through an isolated Supabase preview,
+  then apply it in production and run the governed MoneyTrail export/review
+  workflow. This host currently lacks the preview project credentials/CLI
+  token needed to perform that migration safely.
+- The bounded RAG-context race repair is in PR `#22`; verify the next scheduled
+  export/review cycle is green after promotion.
 - Backfill insufficient BoE 2Y/10Y curve history.
 - Keep the production surface fail-closed until evidence, price, levels, and
   review clocks are fresh; the current review graph intentionally exposes no
@@ -267,6 +294,12 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   deletion access is available.
 
 ## Recent changes
+
+- 2026-08-23: Added the evidence-aware thesis-quality contract end to end:
+  deterministic local register, explicit thesis-family questions, freshness and
+  contradiction handling, public-safe Supabase read model, and a dashboard
+  research surface showing counter-thesis, gaps, kill criteria, and next tests.
+  Quality remains separate from actionability and execution.
 
 - 2026-08-21: Hardened the FollowDaMO evidence clock and MoneyTrail mapping;
   collection-time masquerading is blocked, stale/undated setups are demoted
