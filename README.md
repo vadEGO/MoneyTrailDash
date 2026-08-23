@@ -259,9 +259,9 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   `quarantine` records. Its evidence clocks are 41 fresh, 23 aging, 428
   stale, and 182 missing. Stale/missing state is intentionally visible and
   non-actionable.
-- PR `#22` (`1c3d432`) adds the Supabase contract and `/research` surface. The
+- PR `#22` (`ff7ddac`) adds the Supabase contract and `/research` surface. The
   exact commit passed the dashboard unit/macro tests, production build, and
-  Vercel preview deployment.
+  Vercel preview deployment (`6wZbVSXUh5m38a9R869fCb2MfM1k`).
 - The reviewed migration is
   `supabase/migrations/20260823060000_thesis_quality_contract.sql`. It creates
   the RLS-protected base table and `public_thesis_quality` security-invoker
@@ -270,11 +270,13 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
 - LanceDB retrieval context is verified against table version 325. The review
   graph now handles one bounded context race and locks the corpus during
   write-back.
+- The governed `moneytrail_valuation_trade_ideas_publish` scheduler rerun
+  completed successfully at `2026-08-23T05:48:05Z`: export status is fresh,
+  the review graph applied 445 records across all six sections, scheduler
+  health is green, and the stale-idea lifecycle reports 0 actionable ideas.
 
 ## Known risks and next work
 
-- Reconcile scheduler-aware health: feeds retains failed scheduler state while a
-  later successful export can make the compact healthcheck appear green.
 - Promote the thesis-quality migration through an isolated Supabase preview,
   then apply it in production and run the governed MoneyTrail export/review
   workflow. This host currently lacks the preview project credentials/CLI
