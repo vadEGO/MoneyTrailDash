@@ -197,6 +197,7 @@ an export snapshot when canonical source data is available.
 - `/decisions`: decision ledger with horizon, review, invalidation, and outcomes.
 - `/filings`: institutional filing context.
 - `/theses`: thesis register, confidence, and research requests.
+- `/research`: evidence-aware thesis quality, counter-thesis, open gaps, kill criteria, and next tests.
 - `/council`: council reasoning and disagreements.
 - `/library`: public-safe research/evidence library.
 - `/macro`: regional macro model, source coverage, and catalysts.
@@ -228,19 +229,84 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
 - Scores remain dated `2026-08-03`; holdings remain unconfirmed since
   `2026-07-05`; public portfolio actions remain empty.
 
+### FollowDaMO production rerun — 2026-08-21
+
+- The production research-only wrapper completed all 16 stages successfully
+  with 5,107 raw records, 542 signals, 17 active tradeability rows, and 852
+  research packs. Evidence clocks were 16 fresh, 3 aging, and 523 stale; 446
+  of those stale signals are now excluded from active research.
+- Source clocks now use matching item publication/update dates; snapshot
+  collection time is not accepted as evidence. The local trade-idea rebuild
+  reduced `ready` setups from 404 to 27, with the remainder retained as
+  research-only until dated current evidence exists.
+- The corrected production export published 27 canonical ticker-level
+  opportunities and 27 entry/exit plans in batch
+  `558149f1-0795-4bdf-988e-204e796e9aba`. The OpenClaw review graph applied
+  628 review records, 285 updates, and 270 events; it reported 0 actionable
+  rows, so the dashboard remains fail-closed.
+- The local proof separately reports 27 source setups as ready, 13 as research,
+  and 1,360 as feed/candidate; source readiness is not actionability.
+- The two failed intermediate export snapshots were moved to macOS Trash after
+  the successful retry: one was blocked by a foreign-key dependency and one by
+  a repaired bulk-schema mismatch. The live export queue is empty.
+
+### Thesis quality v1 release candidate — 2026-08-23
+
+- Local FollowDaMO proof completed all 16 stages successfully at
+  `2026-08-23T05:40:04Z`: 5,180 raw records, 546 signals, 20 active
+  tradeability rows, 876 research packs, and 674 thesis-quality records.
+- The thesis register currently contains 64 `watch`, 597 `research`, and 13
+  `quarantine` records. Its evidence clocks are 41 fresh, 23 aging, 428
+  stale, and 182 missing. Stale/missing state is intentionally visible and
+  non-actionable.
+- PR `#22` (`ff7ddac`) adds the Supabase contract and `/research` surface. The
+  exact commit passed the dashboard unit/macro tests, production build, and
+  Vercel preview deployment (`6wZbVSXUh5m38a9R869fCb2MfM1k`).
+- The reviewed migration is
+  `supabase/migrations/20260823060000_thesis_quality_contract.sql`. It creates
+  the RLS-protected base table and `public_thesis_quality` security-invoker
+  view. It is not marked production-applied until an isolated Supabase
+  preview has been verified.
+- LanceDB retrieval context is verified against table version 325. The review
+  graph now handles one bounded context race and locks the corpus during
+  write-back.
+- The governed `moneytrail_valuation_trade_ideas_publish` scheduler rerun
+  completed successfully at `2026-08-23T05:48:05Z`: export status is fresh,
+  the review graph applied 445 records across all six sections, scheduler
+  health is green, and the stale-idea lifecycle reports 0 actionable ideas.
+
 ## Known risks and next work
 
-- Reconcile scheduler-aware health: feeds retains failed scheduler state while a
-  later successful export can make the compact healthcheck appear green.
-- Fix the RAG-context dependency ordering for the 06:40 feeds job.
+- Promote the thesis-quality migration through an isolated Supabase preview,
+  then apply it in production and run the governed MoneyTrail export/review
+  workflow. This host currently lacks the preview project credentials/CLI
+  token needed to perform that migration safely.
+- The bounded RAG-context race repair is in PR `#22`; verify the next scheduled
+  export/review cycle is green after promotion.
 - Backfill insufficient BoE 2Y/10Y curve history.
-- Restore published feed-item freshness and stale canonical scores.
+- Keep the production surface fail-closed until evidence, price, levels, and
+  review clocks are fresh; the current review graph intentionally exposes no
+  actionable rows.
+- Verify the newly enabled OECD Composite Leading Indicator feed in a future
+  macro export/review cycle; this rerun intentionally published the
+  `trade_ideas` decision section only.
 - Confirm holdings from broker/wallet records before portfolio actionability.
 - `moneytraildash.com` currently fails local DNS; Vercel alias remains healthy.
 - Delete disposable preview Supabase project `ddxueqwksoqdkrvpclbt` when project
   deletion access is available.
 
 ## Recent changes
+
+- 2026-08-23: Added the evidence-aware thesis-quality contract end to end:
+  deterministic local register, explicit thesis-family questions, freshness and
+  contradiction handling, public-safe Supabase read model, and a dashboard
+  research surface showing counter-thesis, gaps, kill criteria, and next tests.
+  Quality remains separate from actionability and execution.
+
+- 2026-08-21: Hardened the FollowDaMO evidence clock and MoneyTrail mapping;
+  collection-time masquerading is blocked, stale/undated setups are demoted
+  to research, local mapping remains explicitly quarantined until all clocks
+  are current, and the corrected production export/review path completed.
 
 - 2026-08-14: Effective market-price contract shipped in PR `#17`; rebuilt all
   259 canonical opportunity rows and increased visible numeric prices from 16
@@ -249,6 +315,10 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   checklist; clock/value disagreement is now explicit and non-actionable.
 - 2026-08-14: Reconciled the RAG retrieval context to LanceDB version 197 and
   proved the complete guarded valuation/export/review/lifecycle workflow green.
+- 2026-08-14: Enabled the keyless OECD Composite Leading Indicator SDMX feed for
+  six core regions. The local canonical run ingested 354 observations with
+  4.8 years of history; existing macro UI already exposes the growth pillar and
+  source health, so no dashboard component change was needed.
 - 2026-08-13: Added reversible active/soft-archived/closed lifecycle and monthly
   first-Sunday review; no hard deletion.
 - 2026-08-13: Soft-archived stale untracked ideas while preserving canonical

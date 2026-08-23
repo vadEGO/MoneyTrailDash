@@ -44,6 +44,40 @@ export interface PublicThesis {
   last_updated: string | null
 }
 
+export interface ThesisQualityRow {
+  id: string
+  symbol: string
+  asset_name: string | null
+  asset_class: string | null
+  primary_thesis: string
+  title: string
+  claim: string
+  mechanism: string
+  horizon: string
+  status: string
+  quality_score: number
+  confidence: number
+  evidence_status: string
+  evidence_last_confirmed_at: string | null
+  source_count: number
+  confirming_source_count: number
+  contradicting_evidence_count: number
+  supporting_evidence: string[] | null
+  contradicting_evidence: string[] | null
+  unknowns: string[] | null
+  invalidation_conditions: string[] | null
+  leading_indicators: Array<Record<string, unknown>> | null
+  next_test: string
+  next_test_due_at: string | null
+  best_expression: string | null
+  adjudication_decision: string | null
+  adjudication_reason_codes: string[] | null
+  counter_thesis: string | null
+  scenarios: Record<string, unknown> | null
+  source_details: Array<Record<string, unknown>> | null
+  updated_at: string
+}
+
 export interface PublicCouncilRun {
   id: string
   topic_pack_id: string | null
@@ -762,6 +796,7 @@ export interface Database {
       public_dashboard_summary: { Row: DashboardSummary }
       public_opportunity_watchlist: { Row: PublicOpportunity }
       public_thesis_register: { Row: PublicThesis }
+      public_thesis_quality: { Row: ThesisQualityRow }
       public_latest_council_runs: { Row: PublicCouncilRun }
       public_persona_positions: { Row: PersonaPosition }
       public_research_library: { Row: ResearchLibraryRow }
