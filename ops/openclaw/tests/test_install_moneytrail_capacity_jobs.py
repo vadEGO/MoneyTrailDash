@@ -13,6 +13,12 @@ SPEC.loader.exec_module(installer)
 
 
 class CapacityJobInstallerTest(unittest.TestCase):
+    def test_feeds_job_uses_explicit_rag_dependency_entry_point(self) -> None:
+        config = installer.load_config(Path(__file__).resolve().parents[1] / "moneytrail_capacity_jobs.json")
+        feeds = next(job for job in config["jobs"] if job["workflow_name"] == "moneytrail_feeds_refresh")
+        self.assertEqual(feeds["engine_argv"][1], "MoneyTrailDash/ops/openclaw/run_moneytrail_feeds_refresh.py")
+        self.assertNotIn("--stages", feeds["engine_argv"])
+
     def test_guarded_argv_keeps_engine_workflow_and_arguments(self) -> None:
         job = {
             "workflow_name": "moneytrail_test",

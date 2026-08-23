@@ -27,6 +27,13 @@ python3 MoneyTrailDash/ops/openclaw/moneytrail_capacity_guard.py \
 
 Scheduled job payloads should call this wrapper rather than invoking `run_moneytrail_engine.py` directly. The wrapper does not replace the engine, alter section freshness, or bypass its queue/circuit behavior.
 
+The feeds job uses `run_moneytrail_feeds_refresh.py` as a narrow dependency
+coordinator. It runs the feeds source stage, then the verified
+`run_openclaw_rag_pipeline.py`, and only then runs the feeds export/review
+stage. The full analysis stage remains disabled. If sync, context generation,
+or table-version verification fails, the coordinator restores the prior
+context and status files and does not start export.
+
 `moneytrail_stale_idea_lifecycle.py` runs inside the capacity guard, immediately
 before and after the canonical engine. It soft-archives an untracked idea only
 after its evidence has missed three complete source-SLA windows, or after 30
