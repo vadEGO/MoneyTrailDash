@@ -303,6 +303,7 @@ export interface LlmHealthRow {
   ok_count: number | null
   fallback_count: number | null
   failed_count: number | null
+  configured_count: number | null
 }
 
 export interface RvTradeIdea {

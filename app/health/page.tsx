@@ -66,7 +66,10 @@ export default async function HealthPage() {
                   <div className="text-xs font-semibold text-ink">{row.model ?? 'model'}</div>
                   <div className="font-mono text-xs text-ink">{row.calls ?? 0}</div>
                 </div>
-                <div className="text-2xs text-ink-3 mt-1">ok {row.ok_count ?? 0} / fallback {row.fallback_count ?? 0} / failed {row.failed_count ?? 0}</div>
+                <div className="text-2xs text-ink-3 mt-1">
+                  {row.configured_count ? `configured ${row.configured_count} / ` : ''}
+                  ok {row.ok_count ?? 0} / fallback {row.fallback_count ?? 0} / failed {row.failed_count ?? 0}
+                </div>
               </div>
             ))}
           </div>
@@ -84,4 +87,3 @@ function Metric({ label, value }: { label: string; value: string | number }) {
     </div>
   )
 }
-

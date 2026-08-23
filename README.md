@@ -316,7 +316,12 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
 - 2026-08-23: Unified thesis and FollowDaMO reasoning with OpenClaw's canonical
   `agents.defaults.model.primary`; removed the stale `openai/gpt-4.1-mini`
   override and deleted the separate reasoning model config. The dashboard's
-  LLM audit now records the OpenClaw model actually selected by the runtime.
+  LLM audit now records the OpenClaw model selected by the runtime, while the
+  health view distinguishes configured heartbeats from real LLM outcomes.
+
+- 2026-08-23: Added the LLM health configured-count contract so runtime model
+  selection is not counted as a successful model call; historical audit rows
+  remain unchanged.
 
 - 2026-08-23: Added the evidence-aware thesis-quality contract end to end:
   deterministic local register, explicit thesis-family questions, freshness and
