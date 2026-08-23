@@ -261,10 +261,9 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   non-actionable.
 - PR `#22` merged as `7073709` and adds the Supabase contract and `/research`
   surface. The tested branch passed the dashboard unit/macro tests and
-  production build; its feature deployment was
-  `dpl_6ou1MFaA547HnX7osBoMWdFhrvLz`. Documentation PR `#24` then merged as
-  `b3d397c`, and current production is READY as deployment
-  `dpl_BhkpRyENtGp5fWw4vGcneZknpGF8`.
+  production build. The stable production alias is
+  `money-trail-dash.vercel.app`; the exact tested deployment identity is kept
+  in the release manifest rather than treated as a data-freshness signal.
 - The reviewed migration is
   `supabase/migrations/20260823060000_thesis_quality_contract.sql`. It creates
   the RLS-protected base table and `public_thesis_quality` security-invoker
