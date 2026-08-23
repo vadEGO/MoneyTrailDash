@@ -270,9 +270,14 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   `20260823103049_thesis_quality_contract_20260823`; both the base table and
   public view contain 674 rows. Per the direct-production release decision,
   no Supabase preview branch was created.
-- LanceDB retrieval context is verified against table version 325. The review
-  graph now handles one bounded context race and locks the corpus during
-  write-back.
+- LanceDB retrieval context is verified against table version 327. The review
+  graph handles one bounded context race, locks the corpus during write-back,
+  deduplicates repeated source chunks, and refuses to increase thesis
+  confidence from undated context.
+- The read-only OpenClaw thesis trial reviewed 689 records (15 summary theses
+  plus 674 structured quality rows): 621 required revalidation and 53 were
+  structurally checked. It found 180 quality rows without a counter-thesis;
+  no Supabase review rows or events were written by the trial.
 - The governed `moneytrail_valuation_trade_ideas_publish` scheduler rerun
   completed successfully at `2026-08-23T05:48:05Z`: export status is fresh,
   the review graph applied 445 records across all six sections, scheduler
@@ -287,6 +292,10 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
 - Keep the production thesis view synchronized through the scheduled analysis
   export and monitor its evidence clocks; stale/missing thesis evidence remains
   intentionally visible and non-actionable.
+- Use the thesis-only OpenClaw trial before any review write-back. The trial
+  must remain read-only, must not lift confidence from undated context, and
+  should reduce the 621-row revalidation queue through dated evidence,
+  counter-theses, and explicit next tests rather than score tuning.
 - The bounded RAG-context race repair landed in PR `#22`; verify the next scheduled
   export/review cycle is green after promotion.
 - Backfill insufficient BoE 2Y/10Y curve history.
@@ -312,6 +321,12 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
 - 2026-08-23: Promoted thesis quality to production: applied the Supabase
   contract, published 674 rows, merged PR `#22`, and verified the Vercel
   production deployment and authentication-gated `/research` route.
+
+- 2026-08-23: Hardened the OpenClaw thesis review path: deduplicated repeated
+  RAG chunks, blocked confidence increases from undated context, and added a
+  structured audit of all 674 thesis-quality rows. The first read-only trial
+  produced a 621-row revalidation queue without writing production review
+  state.
 
 - 2026-08-21: Hardened the FollowDaMO evidence clock and MoneyTrail mapping;
   collection-time masquerading is blocked, stale/undated setups are demoted
