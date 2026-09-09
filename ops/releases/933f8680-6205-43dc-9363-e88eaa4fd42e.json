@@ -41,7 +41,7 @@
   },
   "openclaw": {
     "automation_policy_version": 1,
-    "entrypoint": "ops/release/moneytrail_release.py",
+    "entrypoint": "ops/openclaw/moneytrail_launcher.py",
     "manual_run_id": "openclaw-review-20260909T064032Z",
     "scheduled_job_id": "c7e3bae2-f180-421d-9798-59d5b036d847",
     "workflow_name": "moneytrail_stale_trade_idea_review"

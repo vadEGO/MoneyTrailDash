@@ -46,6 +46,24 @@ tools can override it with `--lease-path`.
 
 ## Versioned OpenClaw runtime
 
+The release coordinator runtime below remains the control-plane contract for
+leases and manifests. MoneyTrail process execution is installed separately into
+Hermes' stable runtime so scheduled wrappers and manual OpenClaw checks share the
+same hash-pinned launcher:
+
+```bash
+python3 ops/openclaw/install_moneytrail_runtime.py \
+  --dashboard-root "$PWD" \
+  --source-commit "$(git rev-parse HEAD)"
+python3 ~/.hermes/runtime/moneytrail/current/launcher.py \
+  --process moneytrail_valuation_refresh --check
+```
+
+`runtime.json` records the source commit and SHA-256 hashes for the launcher,
+canonical process manifest, and migrated runner. A wrapper `--check` is a
+configuration validation only; it does not execute a workflow or advance data
+freshness.
+
 Install the exact committed coordinator and policy into the stable OpenClaw
 runtime path after the Git state has been tested:
 
