@@ -35,7 +35,7 @@ import {
   STANCE_LABEL_TEXT,
   type TickerGroup,
 } from '@/lib/ticker-aggregate'
-import { fmtPriceAge, hasNoPlan, priceAgeDays, priceHealth } from '@/lib/price-feed'
+import { fmtPriceAge, hasNoPlan, priceAgeDays, priceHealth, priceIssueLabel } from '@/lib/price-feed'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -646,23 +646,22 @@ function PriceTile({ idea }: { idea: OpportunityAction }) {
 
   if (health === 'missing' || health === 'inconsistent') {
     const inconsistent = health === 'inconsistent'
-    const clockMissing = inconsistent && idea.current_price != null && !idea.price_as_of
+    const issue = priceIssueLabel(idea)
+    const validValue = idea.current_price != null && Number.isFinite(idea.current_price) && idea.current_price > 0
     return (
       <div
         className={`rounded border px-3 py-1.5 text-center ${
           inconsistent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
         }`}
         title={inconsistent
-          ? clockMissing
-            ? 'A numeric market price exists without an observation clock. It is shown for context only and is not fresh or actionable.'
-            : 'A dated quote clock exists, but its numeric value was not published. The producer contract needs repair.'
+          ? `${issue}: the quote contract needs repair. Available values are context only; no entry verdict can be evaluated.`
           : hasNoPlan(idea)
             ? 'No dated market quote is available. Entry, stop and target levels are also unavailable.'
             : 'No dated market quote is available.'}
       >
         <div className={`text-2xs ${inconsistent ? 'text-status-red' : 'text-status-amber'}`}>MARKET PRICE</div>
         <div className={`mt-0.5 font-mono text-sm font-bold leading-none ${inconsistent ? 'text-status-red' : 'text-status-amber'}`}>
-          {inconsistent ? (clockMissing ? `${money(idea.current_price)} · CLOCK MISSING` : 'VALUE MISSING') : 'NO QUOTE'}
+          {inconsistent ? `${validValue ? `${money(idea.current_price)} · ` : ''}${issue}` : 'NO QUOTE'}
         </div>
       </div>
     )
@@ -679,7 +678,7 @@ function PriceTile({ idea }: { idea: OpportunityAction }) {
       title={idea.price_freshness_reason ?? `Observed ${age} ago${source ? ` via ${source}` : ''}.`}
     >
       <div className={`text-2xs ${attention ? 'text-status-amber' : 'text-ink-3'}`}>
-        MARKET PRICE · {age}
+        MARKET PRICE · {attention ? `${health.toUpperCase()} · ` : ''}{age}
       </div>
       <div className={`mt-0.5 font-mono text-sm font-bold leading-none ${attention ? 'text-status-amber' : 'text-ink'}`}>
         {money(idea.current_price)}

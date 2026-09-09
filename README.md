@@ -288,6 +288,18 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   `/research` is live and authentication-gated; unauthenticated requests
   redirect to `/login` as expected.
 
+## Dashboard review candidate — 2026-09-09
+
+A local dashboard candidate closes quote/section clock presentation gaps:
+missing, malformed, and future clocks cannot look fresh; quotes exceeding the
+existing seven-day display limit are qualified even if their published label is
+fresh. Invalid/expired quotes move to the review queue, and usable numeric values
+remain visible with explicit clock warnings. Canonical scores and timestamps are
+unchanged. This is not a production release or a new operating-freshness claim.
+
+See [review findings and acceptance criteria](docs/reviews/2026-09-09-dashboard-review.md)
+for test evidence, prioritized follow-up, and outstanding release verification.
+
 ## Known risks and next work
 
 - Keep the production thesis view synchronized through the scheduled analysis

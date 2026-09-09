@@ -47,6 +47,7 @@ import {
   hasNoPlan,
   priceAgeDays,
   priceHealth,
+  priceIssueLabel,
   summarisePriceFeed,
 } from '@/lib/price-feed'
 
@@ -591,8 +592,8 @@ function EvidenceBadge({ row }: { row: OpportunityAction }) {
     ? 'NO EVIDENCE DATE'
     : row.evidence_freshness_status === 'stale'
       ? `STALE ${row.evidence_age_days ?? '?'}D`
-      : row.price_freshness_status !== 'fresh'
-        ? `PRICE ${(row.price_freshness_status ?? 'missing').toUpperCase()}`
+      : priceHealth(row) !== 'fresh'
+        ? `PRICE ${priceHealth(row).toUpperCase()}`
         : row.levels_freshness_status !== 'fresh'
           ? `LEVELS ${(row.levels_freshness_status ?? 'missing').toUpperCase()}`
           : `REVIEW ${(row.review_freshness_status ?? 'missing').toUpperCase()}`
@@ -639,6 +640,10 @@ function EntryStatus({ row }: { row: OpportunityAction }) {
     )
   }
 
+  if (health === 'inconsistent') {
+    return <span className="text-2xs font-semibold text-status-amber">{priceIssueLabel(row)}</span>
+  }
+
   const price = row.current_price!
   const lo = row.entry_min ?? row.ideal_entry
   const hi = row.entry_max ?? row.ideal_entry
@@ -660,16 +665,16 @@ function EntryStatus({ row }: { row: OpportunityAction }) {
     return <span className="text-2xs text-ink-3">—</span>
   }
 
-  if (health === 'stale') {
+  if (health === 'stale' || health === 'aging') {
     const age = fmtPriceAge(priceAgeDays(row))
     return (
       <span
         className="flex items-center gap-1"
-        title={`Computed from a price written ${age} ago — treat this verdict as unreliable.`}
+        title={`Computed from a ${health} price observed ${age} ago — treat this verdict as unreliable.`}
       >
         <span className="text-2xs text-ink-3">{label}</span>
         <span className="rounded-sm border border-amber-200 bg-amber-50 px-1 text-2xs font-semibold text-status-amber">
-          {age}
+          {health.toUpperCase()} · {age}
         </span>
       </span>
     )

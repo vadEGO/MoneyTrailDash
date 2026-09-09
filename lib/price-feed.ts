@@ -20,14 +20,10 @@ export const STALE_PRICE_DAYS = 7
 export type PriceHealth = 'fresh' | 'aging' | 'stale' | 'missing' | 'inconsistent'
 
 export function priceAgeDays(row: OpportunityAction, now = Date.now()): number | null {
-  if (row.price_as_of) {
-    const ms = now - new Date(row.price_as_of).getTime()
-    return Number.isFinite(ms) ? Math.max(0, ms / 86_400_000) : null
-  }
-  if (row.price_age_hours != null && Number.isFinite(Number(row.price_age_hours))) {
-    return Math.max(0, Number(row.price_age_hours)) / 24
-  }
-  return null
+  // A cached age is diagnostic data, not a substitute for an observation clock.
+  if (!row.price_as_of) return null
+  const ms = now - new Date(row.price_as_of).getTime()
+  return Number.isFinite(ms) && ms >= 0 ? ms / 86_400_000 : null
 }
 
 export function priceHealth(row: OpportunityAction, now = Date.now()): PriceHealth {
@@ -37,9 +33,21 @@ export function priceHealth(row: OpportunityAction, now = Date.now()): PriceHeal
       ? 'inconsistent'
       : 'missing'
   }
-  if (contractStatus) return contractStatus
+  if (!Number.isFinite(row.current_price) || row.current_price <= 0) return 'inconsistent'
   const age = priceAgeDays(row, now)
-  return age != null && age > STALE_PRICE_DAYS ? 'stale' : 'fresh'
+  if (age == null) return 'inconsistent'
+  // Never upgrade a producer's warning. Locally downgrade expired snapshots.
+  if (contractStatus === 'missing') return 'inconsistent'
+  if (contractStatus === 'stale' || age > STALE_PRICE_DAYS) return 'stale'
+  return contractStatus === 'aging' ? 'aging' : 'fresh'
+}
+
+export function priceIssueLabel(row: OpportunityAction, now = Date.now()): string {
+  if (row.current_price == null) return 'VALUE MISSING'
+  if (!Number.isFinite(row.current_price) || row.current_price <= 0) return 'VALUE INVALID'
+  if (!row.price_as_of) return 'CLOCK MISSING'
+  if (priceAgeDays(row, now) == null) return 'CLOCK INVALID'
+  return 'QUOTE INCONSISTENT'
 }
 
 /** With no price there is nothing to derive the levels from, so the row cannot be traded. */

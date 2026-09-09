@@ -7,6 +7,8 @@ import type { OpportunityAction } from '../lib/types'
 function idea(overrides: Partial<OpportunityAction>): OpportunityAction {
   return {
     id: String(overrides.id ?? 'idea'),
+    current_price: 100,
+    price_as_of: new Date(Date.now() - 3600000).toISOString(),
     action_state: 'ready',
     lifecycle: 'active_review',
     title: 'Research idea',
