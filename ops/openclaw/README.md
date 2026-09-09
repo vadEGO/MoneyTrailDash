@@ -1,5 +1,30 @@
 # MoneyTrail OpenClaw runtime guards
 
+## Shared process launcher
+
+`moneytrail_launcher.py` is the single validated entry point for the existing
+MoneyTrail process IDs in `ops/hermes/migrated_processes.json`. Hermes schedules
+and manual OpenClaw runs use the same process definitions, runner, dependency
+checks, and non-overlap lock. The launcher fails closed when a process ID,
+manifest dependency, migrated runner, or installed runtime hash is missing or
+drifted. `--check` validates without creating a lock or writing workflow state;
+`--dry-run` prints the validated dispatch without executing it.
+
+Install a versioned, hash-pinned copy after the exact dashboard commit is
+reviewed:
+
+```bash
+python3 MoneyTrailDash/ops/openclaw/install_moneytrail_runtime.py \
+  --source-commit "$(git -C MoneyTrailDash rev-parse HEAD)"
+python3 ~/.hermes/runtime/moneytrail/current/launcher.py \
+  --process moneytrail_valuation_refresh --check
+```
+
+Hermes wrapper scripts under `~/.hermes/scripts/openclaw-moneytrail_*.py` call
+the `current` launcher. OpenClaw's migrated manifest remains the scheduler
+contract; its manual path is the same launcher with `--process`. This does not
+create a second scheduler or change job timing, models, delivery, or freshness.
+
 `moneytrail_capacity_guard.py` is the versioned entry point for both manual and scheduled MoneyTrail runs. It samples free bytes, free percentage, and free inodes before launching the canonical OpenClaw engine. The guard fails closed with exit code 75 when headroom is below the larger of:
 
 - 10 GiB absolute free space; or
