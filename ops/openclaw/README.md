@@ -24,6 +24,9 @@ Hermes wrapper scripts under `~/.hermes/scripts/openclaw-moneytrail_*.py` call
 the `current` launcher. OpenClaw's migrated manifest remains the scheduler
 contract; its manual path is the same launcher with `--process`. This does not
 create a second scheduler or change job timing, models, delivery, or freshness.
+The twelve migrated MoneyTrail entries in the OpenClaw cron store are disabled
+after Hermes registration; the OpenClaw gateway may continue serving unrelated
+jobs, but it must not run a second MoneyTrail copy.
 
 `moneytrail_capacity_guard.py` is the versioned entry point for both manual and scheduled MoneyTrail runs. It samples free bytes, free percentage, and free inodes before launching the canonical OpenClaw engine. The guard fails closed with exit code 75 when headroom is below the larger of:
 
