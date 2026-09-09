@@ -288,23 +288,24 @@ Last verified: 2026-08-14 12:45 AEST, after the healthy effective-price rerun.
   `/research` is live and authentication-gated; unauthenticated requests
   redirect to `/login` as expected.
 
-## Dashboard review candidate — 2026-09-09
+## Dashboard production release — 2026-09-09
 
-A local dashboard candidate closes quote/section clock presentation gaps:
-missing, malformed, and future clocks cannot look fresh; quotes exceeding the
-existing seven-day display limit are qualified even if their published label is
-fresh. Invalid/expired quotes move to the review queue, and usable numeric values
-remain visible with explicit clock warnings. Canonical scores and timestamps are
-unchanged. This is not a production release or a new operating-freshness claim.
+PR `#27` is merged at `79777b8fe8ea4238926a13a4cbfeb402d91b9b84` and is live in
+Vercel production deployment `dpl_G5gji4gH9xuJqbL1Z8FkiG7eUEC4`. The release
+closes quote and section clock presentation gaps: missing, malformed, and future
+clocks cannot look fresh; quotes beyond the seven-day display limit are
+qualified; invalid or expired quotes enter the review queue; and usable numeric
+values remain visible with explicit clock warnings. Canonical scores and source
+timestamps are unchanged.
 
-The candidate also installs a hash-pinned shared launcher for the ten Hermes
-MoneyTrail wrappers and enforces preview Supabase isolation during builds. The
-twelve migrated MoneyTrail entries in OpenClaw's cron store are disabled after
-Hermes registration, preventing duplicate runs while leaving unrelated OpenClaw
-jobs available. A branch preview was attempted at commit `c1bb8ae` and failed
-closed because Vercel Preview still supplied the production Supabase ref; the
-dashboard remains on the last known-good production deployment until the Preview
-environment variables are corrected.
+The release also installs a hash-pinned shared launcher for the ten Hermes
+MoneyTrail wrappers. Hermes owns the recurring migrated process set while the
+matching legacy OpenClaw entries remain disabled, preventing duplicate runs. The
+production promotion was performed directly under explicit operator instruction
+after the preview isolation gate failed closed because Vercel Preview still
+supplied the production Supabase ref. No Supabase migration was part of this
+release; the production security advisor still reports the pre-existing findings
+listed in the release review.
 
 See [review findings and acceptance criteria](docs/reviews/2026-09-09-dashboard-review.md)
 for test evidence, prioritized follow-up, and outstanding release verification.
@@ -331,8 +332,19 @@ for test evidence, prioritized follow-up, and outstanding release verification.
 - `moneytraildash.com` currently fails local DNS; Vercel alias remains healthy.
 - Delete disposable preview Supabase project `ddxueqwksoqdkrvpclbt` when project
   deletion access is available.
+- Configure Vercel Preview with its isolated Supabase URL, `MONEYTRAIL_SUPABASE_ENV=preview`,
+  and the matching `MONEYTRAIL_PREVIEW_SUPABASE_REF` before the next preview-gated
+  release.
+- Resolve the existing Supabase security-advisor findings (RLS-enabled tables
+  without policies, security-definer views/functions, mutable search paths, and
+  leaked-password protection) before treating the database security gate as clean.
 
 ## Recent changes
+
+- 2026-09-09: Promoted PR `#27` directly to Vercel production deployment
+  `dpl_G5gji4gH9xuJqbL1Z8FkiG7eUEC4` at merged commit `79777b8`; installed the
+  hash-pinned Hermes/OpenClaw MoneyTrail launcher runtime and preserved the
+  preview isolation failure as an explicit configuration follow-up.
 
 - 2026-08-23: Unified thesis and FollowDaMO reasoning with OpenClaw's canonical
   `agents.defaults.model.primary`; removed the stale `openai/gpt-4.1-mini`

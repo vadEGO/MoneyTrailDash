@@ -1,7 +1,7 @@
 # MoneyTrailDash review — 2026-09-09
 
-Scope: dashboard code and local verification against base commit `0c343c2`.
-No production data, provider health, or deployment freshness was revalidated.
+Scope: dashboard code and local verification against base commit `0c343c2`,
+followed by direct production verification on 2026-09-09.
 
 ## Implemented: trustworthy clock presentation
 
@@ -61,8 +61,13 @@ component regression tests in the normal `npm test` command.
 - React review: no new requests, effects, subscriptions, or dependencies; warnings
   use text as well as color, with pure classification shared across consumers.
 - Browser interaction and authenticated production paths were not verified.
-- PR #27 is open. The Vercel preview for commit `7f239c5` failed closed because
-  Vercel Preview still supplies the production Supabase ref; production remains
-  on the last known-good deployment. The release is intentionally blocked until
-  Preview variables are corrected, then requires exact-commit verification and a
-  validated release manifest.
+- PR #27 merged at `79777b8fe8ea4238926a13a4cbfeb402d91b9b84` and production
+  deployment `dpl_G5gji4gH9xuJqbL1Z8FkiG7eUEC4` is READY with the exact merged
+  commit. The preview for the branch failed closed because Vercel Preview still
+  supplies the production Supabase ref; this remains a configuration follow-up,
+  not a production execution result.
+- The production Supabase advisor check completed and still reports pre-existing
+  findings (25 RLS-enabled tables without policies, 34 security-definer views,
+  mutable function search paths, and leaked-password protection disabled). No
+  database migration was included in this release, so these findings were not
+  changed by the dashboard promotion.
