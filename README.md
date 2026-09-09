@@ -212,11 +212,9 @@ real stale-idea review through the pinned runtime.
 
 ### Direct production verification — 2026-09-09
 
-- Vercel production alias `money-trail-dash.vercel.app` is READY at deployment
-  `dpl_59E1XbQvjtrZt4NRLhgCwbPmbcAW`, exact commit
-  `1e78d068ac5fd5ecb93c41bfdc1b8736909bbe14`; the code promotion itself was
-  verified at merged commit `79777b8` in deployment
-  `dpl_G5gji4gH9xuJqbL1Z8FkiG7eUEC4`.
+- Vercel production code promotion is READY at deployment
+  `dpl_G5gji4gH9xuJqbL1Z8FkiG7eUEC4`, exact merged commit `79777b8`; the
+  production alias is healthy and the final `/login` probe returned HTTP 200.
 - Supabase production action board remains 100 rows, with 89 numeric quotes,
   one numeric quote missing `price_as_of`, zero future clocks, and latest quote
   observation `2026-09-09T00:00:00Z`.
