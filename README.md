@@ -297,6 +297,15 @@ fresh. Invalid/expired quotes move to the review queue, and usable numeric value
 remain visible with explicit clock warnings. Canonical scores and timestamps are
 unchanged. This is not a production release or a new operating-freshness claim.
 
+The candidate also installs a hash-pinned shared launcher for the ten Hermes
+MoneyTrail wrappers and enforces preview Supabase isolation during builds. The
+twelve migrated MoneyTrail entries in OpenClaw's cron store are disabled after
+Hermes registration, preventing duplicate runs while leaving unrelated OpenClaw
+jobs available. A branch preview was attempted at commit `c1bb8ae` and failed
+closed because Vercel Preview still supplied the production Supabase ref; the
+dashboard remains on the last known-good production deployment until the Preview
+environment variables are corrected.
+
 See [review findings and acceptance criteria](docs/reviews/2026-09-09-dashboard-review.md)
 for test evidence, prioritized follow-up, and outstanding release verification.
 
