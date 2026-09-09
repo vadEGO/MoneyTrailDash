@@ -33,8 +33,8 @@
     "regressions": []
   },
   "git": {
-    "branch": "codex/dashboard-clock-integrity",
-    "merged_commit": null,
+    "branch": "main",
+    "merged_commit": "79777b8fe8ea4238926a13a4cbfeb402d91b9b84",
     "pull_request": 27,
     "repository": "vadEGO/MoneyTrailDash",
     "tested_commit": "5439fc5860ecc01536f33db45ce996dc6b6e0136"
@@ -43,6 +43,7 @@
     "automation_policy_version": 1,
     "entrypoint": "ops/openclaw/moneytrail_launcher.py",
     "manual_run_id": "openclaw-review-20260909T064032Z",
+    "runtime_source_commit": "39adddfb41c0e4b4c52da93a048aa626e5fad3cf",
     "scheduled_job_id": "c7e3bae2-f180-421d-9798-59d5b036d847",
     "workflow_name": "moneytrail_stale_trade_idea_review"
   },
@@ -53,20 +54,22 @@
     "vercel_deployment_id": "dpl_B9HpLRQNBkJyeh7BJ5etENG4GrVz"
   },
   "schema_version": 1,
-  "status": "failed",
+  "status": "production",
   "supabase": {
     "data_verified": true,
     "migrations": [],
     "preview_project_ref": "ddxueqwksoqdkrvpclbt",
     "production_project_ref": "iinzcnqwhltxjilpkojr",
-    "security_verified": false
+    "security_verified": false,
+    "verification_note": "Production advisor check completed; pre-existing security findings remain, so the clean security gate is intentionally incomplete."
   },
   "vercel": {
     "preview_commit": "5439fc5860ecc01536f33db45ce996dc6b6e0136",
     "preview_deployment_id": "dpl_52TyaSSPmCrAhUB7iupUYw4HtPvA",
-    "production_commit": null,
-    "production_deployment_id": null,
+    "production_commit": "79777b8fe8ea4238926a13a4cbfeb402d91b9b84",
+    "production_deployment_id": "dpl_G5gji4gH9xuJqbL1Z8FkiG7eUEC4",
     "project_id": "prj_pUd6DeaIF0zedi6D6HOIERhIEgfj",
-    "status": "ERROR"
+    "status": "READY",
+    "verification_note": "Direct production promotion was explicitly authorized after the preview isolation gate failed closed."
   }
 }
