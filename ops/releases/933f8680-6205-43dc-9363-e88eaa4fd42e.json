@@ -1,0 +1,72 @@
+{
+  "candidate": {
+    "gate_decision": "ship",
+    "gate_score": 76.5,
+    "id": "clock-integrity-runtime-alignment",
+    "title": "Clock integrity and shared MoneyTrail runtime alignment"
+  },
+  "freshness": {
+    "after": {
+      "captured_at": "2026-09-09T06:40:32Z",
+      "public_action_board_rows": 100,
+      "numeric_quotes": 89,
+      "numeric_quotes_missing_clock": 1,
+      "future_quote_clocks": 0,
+      "latest_quote_clock": "2026-09-09T00:00:00Z",
+      "review_raw_idea_count": 90,
+      "review_groups": 90,
+      "review_events_published": 100,
+      "actionable_review_rows": 0
+    },
+    "baseline": {
+      "captured_at": "2026-09-09T06:40:32Z",
+      "public_action_board_rows": 100,
+      "numeric_quotes": 89,
+      "numeric_quotes_missing_clock": 1,
+      "future_quote_clocks": 0,
+      "latest_quote_clock": "2026-09-09T00:00:00Z",
+      "review_raw_idea_count": 90,
+      "review_groups": 90,
+      "review_events_published": 100,
+      "actionable_review_rows": 0
+    },
+    "regressions": []
+  },
+  "git": {
+    "branch": "codex/dashboard-clock-integrity",
+    "merged_commit": null,
+    "pull_request": 27,
+    "repository": "vadEGO/MoneyTrailDash",
+    "tested_commit": "5439fc5860ecc01536f33db45ce996dc6b6e0136"
+  },
+  "openclaw": {
+    "automation_policy_version": 1,
+    "entrypoint": "ops/openclaw/moneytrail_launcher.py",
+    "manual_run_id": "openclaw-review-20260909T064032Z",
+    "scheduled_job_id": "c7e3bae2-f180-421d-9798-59d5b036d847",
+    "workflow_name": "moneytrail_stale_trade_idea_review"
+  },
+  "release_id": "933f8680-6205-43dc-9363-e88eaa4fd42e",
+  "rollback": {
+    "data_contract_version": "public_opportunity_action_board:v1",
+    "git_commit": "0c343c206557871a25b01fe29dacb67514cccfac",
+    "vercel_deployment_id": "dpl_B9HpLRQNBkJyeh7BJ5etENG4GrVz"
+  },
+  "schema_version": 1,
+  "status": "failed",
+  "supabase": {
+    "data_verified": true,
+    "migrations": [],
+    "preview_project_ref": "ddxueqwksoqdkrvpclbt",
+    "production_project_ref": "iinzcnqwhltxjilpkojr",
+    "security_verified": false
+  },
+  "vercel": {
+    "preview_commit": "5439fc5860ecc01536f33db45ce996dc6b6e0136",
+    "preview_deployment_id": "dpl_52TyaSSPmCrAhUB7iupUYw4HtPvA",
+    "production_commit": null,
+    "production_deployment_id": null,
+    "project_id": "prj_pUd6DeaIF0zedi6D6HOIERhIEgfj",
+    "status": "ERROR"
+  }
+}

@@ -1,6 +1,6 @@
 # MoneyTrail Product Roadmap
 
-Last reviewed: 2026-07-29
+Last reviewed: 2026-09-09 (dashboard code review; production state not revalidated)
 
 MoneyTrail is a research and decision-support system. Evidence quality, disagreement, invalidation, and freshness must be visible before an idea feels actionable. It does not execute trades.
 
@@ -58,3 +58,19 @@ SEC guidance confirms Form 13F can arrive up to 45 days after quarter-end, while
 ## Next Review
 
 Measure whether event windows trigger timely macro-fit refreshes. The next catalyst slice should add company-specific earnings and material SEC filing events using primary-source identifiers, with explicit missing-date coverage rather than inferred dates.
+
+## 2026-09-09 Review
+
+Prioritize trustworthy clock presentation before adding more signals. The local
+clock-integrity candidate prevents missing/invalid/future quote clocks from
+appearing fresh, qualifies expired snapshots, and retains affected ideas in the
+review queue. Tests cover shared helpers and rendered components. Release is
+pending isolated preview and production verification.
+
+Preview isolation is now enforced at build time and rejects the current Vercel
+Preview configuration because it points at production. Hermes owns the recurring
+MoneyTrail schedule through the shared hash-pinned launcher; duplicate OpenClaw
+MoneyTrail entries are disabled. Next: configure the dedicated Preview variables,
+verify signed-in flows, then test auth failure states and define measurable outcome
+calibration.
+See [the review](docs/reviews/2026-09-09-dashboard-review.md) for acceptance criteria.

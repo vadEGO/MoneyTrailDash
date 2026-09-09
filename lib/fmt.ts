@@ -4,7 +4,10 @@
 
 export function formatAge(iso?: string | null) {
   if (!iso) return 'Never synced'
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
+  const elapsed = Date.now() - new Date(iso).getTime()
+  if (!Number.isFinite(elapsed)) return 'Invalid timestamp'
+  if (elapsed < 0) return 'Future timestamp'
+  const minutes = Math.round(elapsed / 60000)
   if (minutes < 60) return `${minutes}m ago`
   const hours = Math.round(minutes / 60)
   if (hours < 48) return `${hours}h ago`

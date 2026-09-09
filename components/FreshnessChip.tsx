@@ -25,6 +25,14 @@ export default function FreshnessChip({ at, staleAfterHrs, label }: FreshnessChi
     return <StatusChip label={`${prefix}never run`} variant="grey" />
   }
 
+  const ageHrs = (Date.now() - new Date(at).getTime()) / 3_600_000
+  if (!Number.isFinite(ageHrs) || ageHrs < 0) {
+    return <StatusChip label={`${prefix}CLOCK INVALID`} variant="amber" />
+  }
+  if (staleAfterHrs != null && (!Number.isFinite(staleAfterHrs) || staleAfterHrs < 0)) {
+    return <StatusChip label={`${prefix}FRESHNESS UNKNOWN`} variant="amber" />
+  }
+
   // on_demand (no threshold): show age only, no stale judgement
   if (staleAfterHrs == null) {
     return (
@@ -34,7 +42,6 @@ export default function FreshnessChip({ at, staleAfterHrs, label }: FreshnessChi
     )
   }
 
-  const ageHrs = (Date.now() - new Date(at).getTime()) / 3_600_000
   const isStale = ageHrs > staleAfterHrs
   return (
     <span className="inline-flex items-center gap-2">

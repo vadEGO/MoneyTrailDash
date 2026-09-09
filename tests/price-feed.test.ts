@@ -41,9 +41,9 @@ assert.equal(
   'missing',
 )
 
-// A row with no timestamp cannot be aged, so it is not accused of being stale.
+// A value without an observation clock cannot be classified as fresh.
 assert.equal(priceAgeDays(row({ price_as_of: null, price_age_hours: null }), NOW), null)
-assert.equal(priceHealth(row({ price_as_of: null, price_age_hours: null, price_freshness_status: null }), NOW), 'fresh')
+assert.equal(priceHealth(row({ price_as_of: null, price_age_hours: null, price_freshness_status: null }), NOW), 'inconsistent')
 
 // Re-exporting a row does not refresh a quote: the dedicated clock wins.
 assert.equal(

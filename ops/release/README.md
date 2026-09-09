@@ -46,6 +46,24 @@ tools can override it with `--lease-path`.
 
 ## Versioned OpenClaw runtime
 
+The release coordinator runtime below remains the control-plane contract for
+leases and manifests. MoneyTrail process execution is installed separately into
+Hermes' stable runtime so scheduled wrappers and manual OpenClaw checks share the
+same hash-pinned launcher:
+
+```bash
+python3 ops/openclaw/install_moneytrail_runtime.py \
+  --dashboard-root "$PWD" \
+  --source-commit "$(git rev-parse HEAD)"
+python3 ~/.hermes/runtime/moneytrail/current/launcher.py \
+  --process moneytrail_valuation_refresh --check
+```
+
+`runtime.json` records the source commit and SHA-256 hashes for the launcher,
+canonical process manifest, and migrated runner. A wrapper `--check` is a
+configuration validation only; it does not execute a workflow or advance data
+freshness.
+
 Install the exact committed coordinator and policy into the stable OpenClaw
 runtime path after the Git state has been tested:
 
@@ -86,17 +104,13 @@ no freshness regressions, and rollback targets.
 - `MONEYTRAIL_SUPABASE_ENV=preview`; and
 - `MONEYTRAIL_PREVIEW_SUPABASE_REF` matches the URL project ref.
 
-It is opt-in for now — run it with `npm run release:check-preview`. It is
-deliberately not wired to `prebuild`, because the repository still has a single
-Supabase project. Enforcing the gate before a separate preview project exists
-would fail every preview build rather than catch a misconfiguration. Outside a
-preview the check exits zero, so local and production builds are unaffected
-either way.
+The gate runs automatically from `prebuild`. Outside a Vercel preview the check
+exits zero, so local and production builds are unaffected. A Vercel preview
+build fails closed unless its environment is explicitly isolated.
 
-To turn it on, create the preview Supabase project, set the three variables in
-Vercel's Preview environment only, confirm `npm run release:check-preview`
-passes there, then add `"prebuild": "node ops/release/check-preview-environment.mjs"`
-back to `package.json`.
+Create the preview Supabase project and set the three variables in Vercel's
+Preview environment only. Confirm `npm run release:check-preview` passes with
+those values before accepting a preview deployment.
 
 Create the Supabase development branch only after its cost is explicitly
 confirmed. Configure these variables in Vercel's Preview environment, never in
