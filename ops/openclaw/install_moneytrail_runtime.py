@@ -57,7 +57,7 @@ def install(runtime_root: Path, commit: str, workspace: Path, dashboard: Path) -
         "launcher_sha256": sha256(release / "launcher.py"),
         "manifest_sha256": sha256(root_manifest),
         "runner_sha256": sha256(root_runner),
-        "workspace": str(WORKSPACE),
+        "workspace": str(workspace),
         "installed_at": datetime.now(timezone.utc).isoformat(),
     }
     (release / "runtime.json").write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
