@@ -30,11 +30,11 @@ component regression tests in the normal `npm test` command.
 
 ## Prioritized follow-up
 
-1. **Enforce preview isolation.** `ops/release/README.md` documents an opt-in
-   environment check, and package.json does not enforce it before builds.
-   Provision/verify a separate preview database before enabling enforcement.
-   Acceptance: a preview configured with production credentials fails before
-   deployment; a correctly isolated preview passes and can verify signed-in flows.
+1. **Complete preview isolation.** The environment check now runs from
+   `prebuild`. A preview configured with production credentials fails before
+   deployment (verified on the branch deployment); a correctly isolated preview
+   passes locally with ref `ddxueqwksoqdkrvpclbt`. Configure those three Preview
+   variables in Vercel, then verify signed-in flows against the isolated project.
 2. **Test authentication failure states.** Middleware returns early when public
    configuration is absent. Review the intended fail-closed behavior together
    with page/client configuration handling; add missing-config and expired-session
@@ -61,6 +61,8 @@ component regression tests in the normal `npm test` command.
 - React review: no new requests, effects, subscriptions, or dependencies; warnings
   use text as well as color, with pure classification shared across consumers.
 - Browser interaction and authenticated production paths were not verified.
-- Local release candidate only. No migration, export, PR, merge, or deployment
-  has been performed. Production release still requires the repository's isolated
-  preview, exact-commit verification, and validated release manifest.
+- PR #27 is open. The Vercel preview for commit `7f239c5` failed closed because
+  Vercel Preview still supplies the production Supabase ref; production remains
+  on the last known-good deployment. The release is intentionally blocked until
+  Preview variables are corrected, then requires exact-commit verification and a
+  validated release manifest.

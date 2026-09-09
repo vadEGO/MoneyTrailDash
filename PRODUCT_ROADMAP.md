@@ -67,6 +67,10 @@ appearing fresh, qualifies expired snapshots, and retains affected ideas in the
 review queue. Tests cover shared helpers and rendered components. Release is
 pending isolated preview and production verification.
 
-Next: enforce preview isolation after configuring its database, test auth failure
-states, reconcile the runtime runbook, and define measurable outcome calibration.
+Preview isolation is now enforced at build time and rejects the current Vercel
+Preview configuration because it points at production. Hermes owns the recurring
+MoneyTrail schedule through the shared hash-pinned launcher; duplicate OpenClaw
+MoneyTrail entries are disabled. Next: configure the dedicated Preview variables,
+verify signed-in flows, then test auth failure states and define measurable outcome
+calibration.
 See [the review](docs/reviews/2026-09-09-dashboard-review.md) for acceptance criteria.
