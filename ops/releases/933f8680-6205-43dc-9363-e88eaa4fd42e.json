@@ -37,7 +37,7 @@
     "merged_commit": null,
     "pull_request": 27,
     "repository": "vadEGO/MoneyTrailDash",
-    "tested_commit": "b00f86afe1b04a393e379c280d854c7a32f51355"
+    "tested_commit": "5439fc5860ecc01536f33db45ce996dc6b6e0136"
   },
   "openclaw": {
     "automation_policy_version": 1,
@@ -62,8 +62,8 @@
     "security_verified": false
   },
   "vercel": {
-    "preview_commit": "b00f86afe1b04a393e379c280d854c7a32f51355",
-    "preview_deployment_id": "dpl_4rthfotGYrBdwaAnQmrSDuvpbz9J",
+    "preview_commit": "5439fc5860ecc01536f33db45ce996dc6b6e0136",
+    "preview_deployment_id": "dpl_52TyaSSPmCrAhUB7iupUYw4HtPvA",
     "production_commit": null,
     "production_deployment_id": null,
     "project_id": "prj_pUd6DeaIF0zedi6D6HOIERhIEgfj",
