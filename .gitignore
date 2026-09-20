@@ -31,6 +31,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Supabase CLI local project metadata
+/supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -38,3 +41,7 @@ next-env.d.ts
 # python (ops/release tooling)
 __pycache__/
 *.pyc
+
+# Local release coordination state; authoritative leases live outside the repo
+/ops/release/moneytrail-release.json.lock
+/ops/release/moneytrail_release_history.jsonl

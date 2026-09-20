@@ -43,7 +43,10 @@ import type {
 const REVALIDATE_SECONDS = 300
 
 function hasSupabaseConfig() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error('Dashboard data connection is not configured')
+  }
+  return true
 }
 
 // A cookie-less anon client. Every table read below targets a `public_*` view
@@ -70,7 +73,8 @@ function cached<T>(keyParts: string[], fn: () => Promise<T>) {
 export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   if (!hasSupabaseConfig()) return null
   return cached(['dashboard_summary'], async () => {
-    const { data } = await anonClient().from('public_dashboard_summary').select('*').single()
+    const { data, error } = await anonClient().from('public_dashboard_summary').select('*').maybeSingle()
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? null
   })
 }
@@ -78,11 +82,12 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
 export async function getOpportunities(limit = 20): Promise<PublicOpportunity[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['opportunities', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_opportunity_watchlist')
       .select('*')
       .order('rank', { ascending: true })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -90,11 +95,12 @@ export async function getOpportunities(limit = 20): Promise<PublicOpportunity[]>
 export async function getTheses(limit = 20): Promise<PublicThesis[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['theses', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_thesis_register')
       .select('*')
       .order('confidence', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -102,12 +108,13 @@ export async function getTheses(limit = 20): Promise<PublicThesis[]> {
 export async function getThesisQuality(limit = 30): Promise<ThesisQualityRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['thesis_quality', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_thesis_quality')
       .select('*')
       .order('quality_score', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -115,11 +122,12 @@ export async function getThesisQuality(limit = 30): Promise<ThesisQualityRow[]> 
 export async function getCouncilRuns(limit = 10): Promise<PublicCouncilRun[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['council_runs', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_latest_council_runs')
       .select('*')
       .order('created_at', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -127,11 +135,12 @@ export async function getCouncilRuns(limit = 10): Promise<PublicCouncilRun[]> {
 export async function getPersonaPositions(councilRunId: string): Promise<PersonaPosition[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['persona_positions', councilRunId], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_persona_positions')
       .select('*')
       .eq('council_run_id', councilRunId)
       .order('persona', { ascending: true })
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -139,11 +148,12 @@ export async function getPersonaPositions(councilRunId: string): Promise<Persona
 export async function getResearchLibrary(limit = 80): Promise<ResearchLibraryRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['research_library', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_research_library')
       .select('*')
       .order('created_at', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -151,10 +161,12 @@ export async function getResearchLibrary(limit = 80): Promise<ResearchLibraryRow
 export async function getEngineHealth(limit = 20): Promise<EngineHealthRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['engine_health', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_engine_health')
       .select('*')
+      .order('last_synced_at', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -162,11 +174,12 @@ export async function getEngineHealth(limit = 20): Promise<EngineHealthRow[]> {
 export async function getReports(limit = 20): Promise<PublicReport[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['reports', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_reports')
       .select('*')
       .order('report_date', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -174,10 +187,12 @@ export async function getReports(limit = 20): Promise<PublicReport[]> {
 export async function getLlmHealth(limit = 14): Promise<LlmHealthRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['llm_health', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_llm_health')
       .select('*')
+      .order('day', { ascending: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -185,11 +200,12 @@ export async function getLlmHealth(limit = 14): Promise<LlmHealthRow[]> {
 export async function getRvTradeIdeas(limit = 80): Promise<RvTradeIdea[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['rv_trade_ideas', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_rv_trade_leaderboard')
       .select('*')
       .order('rank', { ascending: true })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -197,11 +213,12 @@ export async function getRvTradeIdeas(limit = 80): Promise<RvTradeIdea[]> {
 export async function getRvTradeEvents(limit = 40): Promise<RvTradeEvent[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['rv_trade_events', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_rv_trade_events')
       .select('*')
       .order('event_at', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -209,10 +226,11 @@ export async function getRvTradeEvents(limit = 40): Promise<RvTradeEvent[]> {
 export async function getRvTradeSyncStatus(limit = 10): Promise<RvTradeSyncStatus[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['rv_trade_sync_status', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_rv_trade_sync_status')
       .select('*')
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -220,11 +238,36 @@ export async function getRvTradeSyncStatus(limit = 10): Promise<RvTradeSyncStatu
 export async function getOpportunityActions(limit = 120): Promise<OpportunityAction[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['opportunity_actions', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_opportunity_action_board')
       .select('*')
+      .order('state_rank', { ascending: true })
+      .order('ticker_rank', { ascending: true })
+      .order('id', { ascending: true })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
+  })
+}
+
+export async function getAllOpportunityActions(): Promise<OpportunityAction[]> {
+  hasSupabaseConfig()
+  return cached(['all_opportunity_actions_v1'], async () => {
+    const rows: OpportunityAction[] = []
+    const pageSize = 500
+    for (let offset = 0; offset < 50000; offset += pageSize) {
+      const { data, error } = await anonClient()
+        .from('public_opportunity_action_board')
+        .select('*')
+        .order('state_rank', { ascending: true })
+        .order('ticker_rank', { ascending: true })
+        .order('id', { ascending: true })
+        .range(offset, offset + pageSize - 1)
+      if (error) throw new Error(`Dashboard idea query failed (${error.code ?? 'unknown'})`)
+      rows.push(...(data ?? []))
+      if (!data || data.length < pageSize) return rows
+    }
+    throw new Error('Idea board exceeds its supported size; refusing a truncated result')
   })
 }
 
@@ -234,10 +277,11 @@ export async function getOpportunityActions(limit = 120): Promise<OpportunityAct
 export async function getTickerStanceRollup(limit = 300): Promise<TickerStance[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['ticker_stance_rollup', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_ticker_stance_rollup')
       .select('*')
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -245,11 +289,12 @@ export async function getTickerStanceRollup(limit = 300): Promise<TickerStance[]
 export async function getEntryExitPlans(limit = 80): Promise<EntryExitPlan[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['entry_exit_plans', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_entry_exit_plans')
       .select('*')
       .order('total_score', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -257,11 +302,12 @@ export async function getEntryExitPlans(limit = 80): Promise<EntryExitPlan[]> {
 export async function getOpportunityEngineEvents(limit = 40): Promise<OpportunityEngineEvent[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['opportunity_engine_events', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_opportunity_engine_events')
       .select('*')
       .order('event_at', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -269,11 +315,12 @@ export async function getOpportunityEngineEvents(limit = 40): Promise<Opportunit
 export async function getMacroFit(limit = 200): Promise<MacroFitRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['macro_fit', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_rv_trade_macro_fit')
       .select('*')
       .order('macro_fit_score', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -281,11 +328,12 @@ export async function getMacroFit(limit = 200): Promise<MacroFitRow[]> {
 export async function getComposite(limit = 200): Promise<CompositeRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['composite', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_rv_trade_composite')
       .select('*')
       .order('composite_score', { ascending: false, nullsFirst: false })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -293,10 +341,11 @@ export async function getComposite(limit = 200): Promise<CompositeRow[]> {
 export async function getPortfolioActions(limit = 50): Promise<PortfolioActionRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['portfolio_actions', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_portfolio_actions')
       .select('*')
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -304,9 +353,10 @@ export async function getPortfolioActions(limit = 50): Promise<PortfolioActionRo
 export async function getThesisAllocation(): Promise<ThesisAllocationRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['thesis_allocation'], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_thesis_allocation')
       .select('*')
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -314,10 +364,11 @@ export async function getThesisAllocation(): Promise<ThesisAllocationRow[]> {
 export async function getPortfolioProposal(limit = 200): Promise<PortfolioProposalRow[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['portfolio_proposal', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_portfolio_proposal')
       .select('*')
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -325,22 +376,24 @@ export async function getPortfolioProposal(limit = 200): Promise<PortfolioPropos
 export async function getMacroRegime(): Promise<MacroRegimeData | null> {
   if (!hasSupabaseConfig()) return null
   const supabase = createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('macro_regime')
     .select('*')
     .eq('id', 'current')
-    .single()
+    .maybeSingle()
+  if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
   return data ?? null
 }
 
 export async function getMarketCatalystEvents(limit = 8): Promise<MarketCatalystEvent[]> {
   if (!hasSupabaseConfig()) return []
   return cached(['market_catalyst_events', String(limit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_market_catalyst_events')
       .select('*')
       .order('event_at', { ascending: true })
       .limit(limit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -348,10 +401,11 @@ export async function getMarketCatalystEvents(limit = 8): Promise<MarketCatalyst
 export async function getMacroRegimeSnapshot(): Promise<MacroRegimeSnapshot | null> {
   if (!hasSupabaseConfig()) return null
   return cached(['macro_regime_snapshot'], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_macro_regime_latest')
       .select('*')
-      .single()
+      .maybeSingle()
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? null
   })
 }
@@ -360,10 +414,11 @@ export async function getMacroHistory(limit = 12): Promise<MacroRegimeSnapshot[]
   if (!hasSupabaseConfig()) return []
   const boundedLimit = Math.max(1, Math.min(50, Math.trunc(limit)))
   return cached(['macro_history', String(boundedLimit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_macro_regime_history')
       .select('*')
       .limit(boundedLimit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -372,11 +427,12 @@ export async function getMacroAssetOverlays(limit = 80): Promise<MacroAssetOverl
   if (!hasSupabaseConfig()) return []
   const boundedLimit = Math.max(1, Math.min(240, Math.trunc(limit)))
   return cached(['macro_asset_overlays', String(boundedLimit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_macro_asset_overlays')
       .select('*')
       .order('macro_score', { ascending: false, nullsFirst: false })
       .limit(boundedLimit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -385,10 +441,11 @@ export async function getMacroDataLatest(limit = 160): Promise<MacroDataPoint[]>
   if (!hasSupabaseConfig()) return []
   const boundedLimit = Math.max(1, Math.min(300, Math.trunc(limit)))
   return cached(['macro_data_latest', String(boundedLimit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_macro_data_latest')
       .select('*')
       .limit(boundedLimit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -398,11 +455,12 @@ export async function getMacroDataLatestForSeries(seriesIds: readonly string[]):
   const normalized = Array.from(new Set(seriesIds.map(value => value.trim()).filter(Boolean))).slice(0, 50)
   if (normalized.length === 0) return []
   return cached(['macro_data_series', ...normalized], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_macro_data_latest')
       .select('*')
       .in('series_id', normalized)
       .order('observation_date', { ascending: false, nullsFirst: false })
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -411,10 +469,11 @@ export async function getMacroSourceStatus(limit = 80): Promise<MacroSourceStatu
   if (!hasSupabaseConfig()) return []
   const boundedLimit = Math.max(1, Math.min(120, Math.trunc(limit)))
   return cached(['macro_source_status', String(boundedLimit)], async () => {
-    const { data } = await anonClient()
+    const { data, error } = await anonClient()
       .from('public_macro_source_status')
       .select('*')
       .limit(boundedLimit)
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     return data ?? []
   })
 }
@@ -444,7 +503,8 @@ export async function getMacroRegionalLatest(filters: MacroRegionalLatestFilters
   if (filters.region) query = query.eq('region', filters.region)
   if (filters.trafficLight) query = query.eq('traffic_light', filters.trafficLight)
   if (filters.includeStale === false) query = query.eq('is_stale', false)
-  const { data } = await query
+  const { data, error } = await query
+  if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
   return data ?? []
 }
 
@@ -460,19 +520,21 @@ export async function getMacroRegionalHistory(filters: MacroRegionalHistoryFilte
   if (filters.region) query = query.eq('region', filters.region)
   if (filters.from) query = query.gte('as_of', filters.from)
   if (filters.to) query = query.lte('as_of', filters.to)
-  const { data } = await query
+  const { data, error } = await query
+  if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
   return data ?? []
 }
 
 export async function getLatestSnapshot(): Promise<{ thesis_board: ThesisBoardRow[] | null }> {
   if (!hasSupabaseConfig()) return { thesis_board: null }
   const supabase = createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('dashboard_snapshots')
     .select('*')
     .order('generated_at', { ascending: false, nullsFirst: false })
     .limit(1)
-    .single()
+    .maybeSingle()
+  if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
   if (!data) return { thesis_board: null }
   const snap = data as { thesis_board?: ThesisBoardRow[] | null }
   return { thesis_board: snap.thesis_board ?? null }
@@ -484,7 +546,8 @@ export async function getLatestSnapshot(): Promise<{ thesis_board: ThesisBoardRo
 export async function getSectionStatus(): Promise<Record<string, SectionStatus>> {
   if (!hasSupabaseConfig()) return {}
   return cached(['section_status'], async () => {
-    const { data } = await anonClient().from('public_section_status').select('*')
+    const { data, error } = await anonClient().from('public_section_status').select('*')
+    if (error) throw new Error(`Dashboard data query failed (${error.code ?? 'unknown'})`)
     const out: Record<string, SectionStatus> = {}
     for (const row of (data ?? []) as SectionStatus[]) out[row.section] = row
     return out

@@ -1,29 +1,47 @@
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import StatusChip from '@/components/ui/StatusChip'
-import { formatAge, getDashboardSummary, getEngineHealth, getLlmHealth } from '@/lib/openclaw'
+import PipelineStatus from '@/components/PipelineStatus'
+import { pipelineHealth, sectionHealth } from '@/lib/pipeline-health'
+import { formatAge, getDashboardSummary, getEngineHealth, getLlmHealth, getSectionStatus } from '@/lib/openclaw'
+
+export const dynamic = 'force-dynamic'
 
 export default async function HealthPage() {
-  const [summary, health, llm] = await Promise.all([
+  const [summary, health, llm, sections] = await Promise.all([
     getDashboardSummary(),
     getEngineHealth(20),
     getLlmHealth(14),
+    getSectionStatus(),
   ])
-  const latest = health[0]
+  const overall = pipelineHealth(sections)
 
   return (
     <div>
       <PageHeader
         title="System Health"
-        subtitle="OpenClaw sync, LLM, and dashboard data freshness."
-        status={<StatusChip label={latest?.is_stale ? 'STALE' : latest?.status ?? 'NO SYNC'} variant={latest?.is_stale ? 'amber' : latest?.status === 'success' ? 'green' : 'grey'} />}
+        subtitle="Collection, research, publication, and dashboard freshness."
+        status={<StatusChip {...overall} />}
       />
 
+      <PipelineStatus sections={sections} />
       <div className="grid grid-cols-4 gap-3 mb-4">
-        <Metric label="Last Sync" value={formatAge(summary?.last_synced_at)} />
+        <Metric label="Last Publish" value={formatAge(summary?.last_synced_at)} />
         <Metric label="Claims" value={summary?.claim_count ?? 0} />
         <Metric label="Insights" value={summary?.insight_count ?? 0} />
         <Metric label="Council Runs" value={summary?.council_run_count ?? 0} />
+      </div>
+
+      <div className="mb-4">
+        <Card title="Section handoffs">
+          <div className="divide-y divide-border">
+            {Object.values(sections).map(row => <div key={row.section} className="px-4 py-3 text-xs">
+              <div className="flex justify-between gap-3"><span className="font-semibold">{row.display_name ?? row.section}</span><StatusChip {...sectionHealth(row)} /></div>
+              <div className="text-ink-3 mt-1">Attempt: {formatAge(row.last_run_at)} · Last good: {formatAge(row.last_ok_at)} · Expected: {row.cadence ?? 'unspecified'}</div>
+              {row.error && <p className="text-ink-2 mt-2 break-words">{row.error}</p>}
+            </div>)}
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

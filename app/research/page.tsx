@@ -11,6 +11,8 @@ import {
   pct,
 } from '@/lib/openclaw'
 
+export const dynamic = 'force-dynamic'
+
 // Research — the single reading surface for the reasoning behind the funnel.
 // It folds together what used to be three separate boards (Council, Theses,
 // Library) into one scannable page: the latest council consensus, the live

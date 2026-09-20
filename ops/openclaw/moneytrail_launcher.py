@@ -85,6 +85,10 @@ def validate_process(process_id: str, manifest_path: Path, runner_path: Path, ru
             raise RuntimeError("live process manifest differs from installed MoneyTrail runtime")
         if expected_runner and expected_runner != sha256(runner_path):
             raise RuntimeError("live migrated-process runner differs from installed MoneyTrail runtime")
+        for relative, expected in runtime.get("source_sha256", {}).items():
+            source = WORKSPACE / relative
+            if not source.is_file() or sha256(source) != expected:
+                raise RuntimeError(f"live MoneyTrail source differs from installed runtime: {relative}")
 
     return {
         "process_id": process_id,

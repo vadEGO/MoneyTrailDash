@@ -6,6 +6,8 @@ import { getThesisAllocation, getPortfolioProposal, getSectionStatus } from '@/l
 import { buildExposureGraph, type ExposureRisk, type ThesisExposure } from '@/lib/portfolio-exposure'
 import type { PortfolioProposalRow, ThesisAllocationRow } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 const RISK_COPY: Record<ExposureRisk, { label: string; variant: 'red' | 'amber' | 'green' | 'blue'; note: string }> = {
   over_max: {
     label: 'Over hard max',

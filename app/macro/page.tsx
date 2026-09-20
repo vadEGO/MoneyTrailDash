@@ -11,7 +11,7 @@ import {
 } from '@/lib/openclaw'
 import type { MacroRegionalScore, MacroSourceStatus, MacroTrafficLight } from '@/lib/types'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export default async function MacroPage() {
   const [regions, history, sources] = await Promise.all([

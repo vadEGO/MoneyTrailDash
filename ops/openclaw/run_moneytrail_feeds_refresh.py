@@ -48,6 +48,7 @@ def engine_command(workflow_name: str, *, stage: str) -> list[str]:
         "frequent",
         "--stages",
         stage,
+        "--require-decision-schema",
         "--require-stage-success",
         "--workflow-name",
         workflow_name,

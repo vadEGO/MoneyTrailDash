@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getMacroSourceStatus } from '@/lib/openclaw'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const sources = await getMacroSourceStatus(120)

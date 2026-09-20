@@ -4,7 +4,8 @@
 
 export function formatAge(iso?: string | null) {
   if (!iso) return 'Never synced'
-  const elapsed = Date.now() - new Date(iso).getTime()
+  const normalized = iso.trim().replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00')
+  const elapsed = Date.now() - new Date(normalized).getTime()
   if (!Number.isFinite(elapsed)) return 'Invalid timestamp'
   if (elapsed < 0) return 'Future timestamp'
   const minutes = Math.round(elapsed / 60000)

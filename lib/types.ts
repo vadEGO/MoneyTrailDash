@@ -767,7 +767,7 @@ export interface MarketCandle {
 export interface SectionStatus {
   section: string
   display_name: string | null
-  status: string            // completed | failed | running | skipped
+  status: string            // completed | degraded | failed | running | skipped
   cadence: string | null    // daily | hourly | weekly | on_demand
   stale_after_hours: number | null
   last_run_at: string | null
