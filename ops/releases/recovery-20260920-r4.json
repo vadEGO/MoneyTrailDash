@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "release_id": "recovery-20260920-r4",
+  "status": "production",
+  "candidate": {
+    "id": "recovery-20260920-prod-commit",
+    "title": "MoneyTrail data, analysis, Hermes, and dashboard recovery",
+    "gate_decision": "ship",
+    "gate_score": 81.5
+  },
+  "git": {
+    "repository": "vadEGO/MoneyTrailDash",
+    "branch": "main",
+    "pull_request": null,
+    "tested_commit": "410419fa8862d663f5818e97e312af321765e552",
+    "merged_commit": "410419fa8862d663f5818e97e312af321765e552",
+    "direct_production_authorized": true,
+    "runtime_workspace_commit": "694860044f8c6214879f909a04756614c996a4f7"
+  },
+  "openclaw": {
+    "entrypoint": "ops/openclaw/moneytrail_launcher.py",
+    "workflow_name": "moneytrail_analysis_refresh_r3",
+    "manual_run_id": "moneytrail_analysis_refresh_r3:2026-09-20T10:30:42Z",
+    "scheduled_job_id": null,
+    "automation_policy_version": 1,
+    "runtime_release_id": "recovery-20260920-r4",
+    "runtime_source_commit": "410419fa8862d663f5818e97e312af321765e552",
+    "runtime_workspace_commit": "694860044f8c6214879f909a04756614c996a4f7",
+    "wrapper_validation": {
+      "moneytrail_analysis_refresh": "validated",
+      "moneytrail_feeds_refresh": "validated",
+      "moneytrail_filings_refresh": "validated",
+      "moneytrail_macro_refresh": "validated",
+      "moneytrail_valuation_refresh": "validated"
+    },
+    "scheduler_note": "Global Hermes ESTOP remains engaged; no scheduled jobs were resumed."
+  },
+  "supabase": {
+    "production_project_ref": "iinzcnqwhltxjilpkojr",
+    "preview_project_ref": null,
+    "migrations": [
+      "20260920085807_recovery_dashboard_summary",
+      "20260920090427_recovery_dashboard_summary_fallback_null",
+      "20260920090726_recovery_dashboard_summary_fallback_null"
+    ],
+    "security_verified": false,
+    "data_verified": true,
+    "verification_note": "All three migration versions are present in production and dashboard summary/section data is readable. Preview was unavailable. The security advisor reports 34 security-definer views, including public_dashboard_summary, and 25 RLS-enabled tables without policies; these require a separate least-privilege review."
+  },
+  "vercel": {
+    "project_id": "prj_pUd6DeaIF0zedi6D6HOIERhIEgfj",
+    "preview_deployment_id": null,
+    "preview_commit": null,
+    "production_deployment_id": "dpl_7j1vekJNKBF23abGpm4pcmefvYpk",
+    "production_commit": "410419fa8862d663f5818e97e312af321765e552",
+    "status": "READY",
+    "production_url": "https://money-trail-dash.vercel.app",
+    "verification_note": "Git-triggered production deployment is READY with no runtime errors. The login route returned 200; dashboard pages and macro API routes redirected to /login as expected. Preview was skipped under explicit direct-production authorization because isolated preview Supabase/Vercel configuration was unavailable."
+  },
+  "freshness": {
+    "baseline": {
+      "captured_at": "2026-09-20T10:35:51.473532Z",
+      "last_synced_at": "2026-09-20T10:35:36.726374Z",
+      "analysis_records": 849,
+      "macro_records": 44011,
+      "score_symbols": 278,
+      "trade_idea_rows": 54,
+      "opportunity_count": 575,
+      "thesis_count": 16,
+      "council_run_count": 2582,
+      "claim_count": 11821,
+      "insight_count": 11821,
+      "llm_fallback_rate": 0.32432432432432434
+    },
+    "after": {
+      "captured_at": "2026-09-20T11:04:28.661Z",
+      "last_synced_at": "2026-09-20T10:35:36.726374Z",
+      "analysis_records": 849,
+      "macro_records": 44011,
+      "score_symbols": 278,
+      "trade_idea_rows": 54,
+      "opportunity_count": 575,
+      "thesis_count": 16,
+      "council_run_count": 2582,
+      "claim_count": 11821,
+      "insight_count": 11821,
+      "llm_fallback_rate": 0.32432432432432434,
+      "feeds_status": "degraded",
+      "portfolio_trading_eligible": false
+    },
+    "regressions": []
+  },
+  "rollback": {
+    "git_commit": "bd89d8921267db1b6310a3508c59145a42601e4f",
+    "vercel_deployment_id": "dpl_B5E8ncfVRn1oPdBCGRHELDzhoyBH",
+    "data_contract_version": "public_dashboard_summary@20260920085807"
+  }
+}
